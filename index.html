@@ -597,14 +597,6 @@
     <h3>💳 Payment Status Breakdown</h3>
     <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Status</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th></tr></thead><tbody id="summaryByPayment"></tbody></table></div>
   </div>
-  <div class="summary-section">
-    <h3>📅 Entries by Date</h3>
-    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Date</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th><th>Status</th></tr></thead><tbody id="summaryByDate"></tbody></table></div>
-  </div>
-  <div class="summary-section">
-    <h3>🏷️ Entries by Vote Code</h3>
-    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Vote Code</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th></tr></thead><tbody id="summaryByVote"></tbody></table></div>
-  </div>
 </div>
 
 <!-- ═══ ADD ENTRY TAB ═══ -->
@@ -1764,46 +1756,10 @@ function renderSummary() {
       <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(amt)}</td></tr>`;
   }).join('');
 
-  // By Date
-  const byDate = {};
-  records.forEach(r => {
-    const k = r.date||'No Date';
-    if (!byDate[k]) byDate[k] = { count:0, total:0, updated:0 };
-    byDate[k].count++; byDate[k].total += Number(r.amount||0);
-    if (r.gsheet) byDate[k].updated++;
-  });
-  let dTotal = 0;
-  document.getElementById('summaryByDate').innerHTML = Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v]) => {
-    dTotal += v.total;
-    const allUp = v.updated === v.count;
-    return `<tr class="summary-clickable" onclick="filterByDate('${d}')">
-      <td><strong>${fmtDate(d)}</strong> <span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px">↗</span></td>
-      <td>${v.count}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(v.total)}</td>
-      <td><span class="badge ${allUp?'badge-green':'badge-grey'}">${v.updated}/${v.count} updated</span></td></tr>`;
-  }).join('') + `<tr class="total-row"><td>TOTAL</td><td>${records.length}</td><td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(dTotal)}</td><td></td></tr>`;
 
-  // By Vote
-  const byVote = {};
-  records.forEach(r => {
-    (r.vote||'No Vote').split(',').map(v=>v.trim()).filter(Boolean).forEach(v => {
-      if (!byVote[v]) byVote[v] = { count:0, total:0 };
-      byVote[v].count++; byVote[v].total += Number(r.amount||0);
-    });
-  });
-  let vTotal = 0;
-  document.getElementById('summaryByVote').innerHTML = Object.entries(byVote).sort((a,b)=>b[1].total-a[1].total).map(([v,d]) => {
-    vTotal += d.total;
-    return `<tr class="summary-clickable" onclick="filterByVote('${v}')">
-      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${v} <span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px">↗</span></td>
-      <td>${d.count}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(d.total)}</td></tr>`;
-  }).join('') + `<tr class="total-row"><td>TOTAL</td><td>${records.length}</td><td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(vTotal)}</td></tr>`;
 }
 
 // ── SUMMARY FILTER HELPERS ────────────────────────────────────────────
-function filterByDate(d)   { document.getElementById('filterDate').value=''; document.getElementById('filterDate').value=d; document.getElementById('filterUpdated').value=''; document.getElementById('searchInput').value=''; showTab('register'); renderTable(); }
-function filterByVote(v)   { document.getElementById('searchInput').value=v; document.getElementById('filterUpdated').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
 function filterByGsheet(s) { document.getElementById('filterUpdated').value=s==='updated'?'updated':s==='pending'?'pending':'gsheet_na'; document.getElementById('searchInput').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
 function filterByImprest(t){ const m={received:'imprest',not_received:'no_imprest',imprest_na:'imprest_na',paid:'imprest_paid',notpaid:'imprest_notpaid'}; document.getElementById('filterUpdated').value=m[t]||''; document.getElementById('searchInput').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
 function filterByItmis(t)  { document.getElementById('filterUpdated').value='itmis_'+t; document.getElementById('searchInput').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
