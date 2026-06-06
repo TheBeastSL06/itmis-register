@@ -935,17 +935,44 @@ function setSyncLastTime(iso) {
   el.textContent = 'Last synced ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
-async function apiCall(body) {
-  if (!SCRIPT_URL) throw new Error('No Script URL configured');
-  body.token = SECRET_TOKEN;
-  // Use GET with URL-encoded payload — avoids the CORS redirect issue
-  // that Apps Script causes with POST requests.
-  const url = SCRIPT_URL + '?payload=' + encodeURIComponent(JSON.stringify(body));
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || 'API error');
-  return data;
+// JSONP — injects a <script> tag instead of fetch().
+// Apps Script redirects all requests through Google servers, which
+// strips CORS headers and causes fetch() to fail. JSONP bypasses
+// CORS entirely by loading the response as a script tag.
+function apiCall(body) {
+  return new Promise((resolve, reject) => {
+    if (!SCRIPT_URL) { reject(new Error('No Script URL configured')); return; }
+
+    body.token = SECRET_TOKEN;
+    const cbName = 'itmis_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const url    = SCRIPT_URL
+                 + '?payload=' + encodeURIComponent(JSON.stringify(body))
+                 + '&callback=' + cbName;
+
+    const script = document.createElement('script');
+    const timer  = setTimeout(() => {
+      cleanup(); reject(new Error('Request timed out'));
+    }, 20000);
+
+    window[cbName] = (data) => {
+      cleanup();
+      if (data && data.ok) resolve(data);
+      else reject(new Error((data && data.error) || 'API error'));
+    };
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('Script load failed — check Script URL in Settings'));
+    };
+    script.src = url;
+    document.head.appendChild(script);
+  });
 }
 
 async function syncNow(silent = false) {
@@ -1113,19 +1140,35 @@ function startAutoSync() {
 }
 
 // ── MIGRATE OLD LOCALSTORAGE DATA ───────────────────────────────────
+// Sends records in small batches to avoid URL-length limits (JSONP uses GET).
 async function migrateLocalData() {
-  const raw = localStorage.getItem('itmisRecords');  // old key
-  if (!raw) { showToast('No old data found to migrate.', 'info'); return; }
+  const raw = localStorage.getItem('itmisRecords');
+  if (!raw) { showToast('No old data found in itmisRecords. Did you paste the data?', 'warning'); return; }
+  let old;
+  try { old = JSON.parse(raw); } catch { showToast('Invalid data in itmisRecords — could not parse JSON.', 'error'); return; }
+  if (!Array.isArray(old) || old.length === 0) { showToast('Old data is empty.', 'info'); return; }
+
+  old.forEach(r => { if (!r.lastModified) r.lastModified = new Date().toISOString(); });
+
+  const BATCH = 5;   // small batches to stay under URL length limits
+  const total = old.length;
+  let done = 0;
+
+  showToast(`Migrating ${total} records in batches…`, 'info');
+  setSyncStatus('syncing', 'Migrating data…');
+
   try {
-    const old = JSON.parse(raw);
-    if (!old.length) { showToast('Old data is empty.', 'info'); return; }
-    // Add lastModified if missing
-    old.forEach(r => { if (!r.lastModified) r.lastModified = new Date().toISOString(); });
-    await apiCall({ action: 'saveMany', records: old });
-    showToast(`Migrated ${old.length} records to Google Sheets ✅`, 'success');
+    for (let i = 0; i < total; i += BATCH) {
+      const batch = old.slice(i, i + BATCH);
+      await apiCall({ action: 'saveMany', records: batch });
+      done += batch.length;
+      setSyncStatus('syncing', `Migrating… ${done}/${total}`);
+    }
+    showToast(`✅ Migrated ${total} records to Google Sheets!`, 'success');
     await syncNow();
   } catch (err) {
-    showToast('Migration failed: ' + err.message, 'error');
+    showToast('Migration failed at record ' + done + ': ' + err.message, 'error');
+    setSyncStatus('error', 'Migration failed');
   }
 }
 
