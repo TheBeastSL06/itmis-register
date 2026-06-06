@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITMIS Daily Updating Register</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f2044">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ITMIS Register">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600&family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --navy: #0f2044;
+    --navy-mid: #1a3460;
+    --navy-light: #254d8f;
+    --gold: #c8962a;
+    --gold-light: #e8b84b;
+    --cream: #f8f5ef;
+    --cream-dark: #ede9e0;
+    --text: #1a1a2e;
+    --text-muted: #5a6480;
+    --green: #1a7a4a;
+    --green-light: #d4f0e2;
+    --red: #b83232;
+    --red-light: #fde8e8;
+    --blue-light: #e8f0fb;
+    --border: #d0cfc8;
+    --shadow: 0 2px 16px rgba(15,32,68,0.10);
+    --radius: 10px;
+    --sync-color: #2563eb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--navy);
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 28px;
+    border-bottom: 3px solid var(--gold);
+  }
+  .header-emblem {
+    width: 52px; height: 52px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .header-text h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.3rem; font-weight: 400;
+    letter-spacing: 0.01em; line-height: 1.2;
+  }
+  .header-text p {
+    font-size: 0.75rem; color: rgba(255,255,255,0.6);
+    margin-top: 2px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .header-right {
+    margin-left: auto;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .header-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem; color: rgba(255,255,255,0.55); letter-spacing: 0.05em;
+  }
+
+  /* ── SYNC STATUS BAR ── */
+  .sync-bar {
+    background: var(--navy-mid);
+    padding: 5px 28px;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 0.75rem; color: rgba(255,255,255,0.65);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sync-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+  }
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #9ca3af; flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .sync-dot.syncing  { background: #f59e0b; animation: pulse 1s infinite; }
+  .sync-dot.synced   { background: #22c55e; }
+  .sync-dot.error    { background: var(--red); }
+  .sync-dot.conflict { background: #f97316; animation: pulse 0.7s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .sync-last {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace; font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* ── CONFIG BANNER ── */
+  .config-banner {
+    background: #7c3aed;
+    color: #fff;
+    padding: 10px 28px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 0.84rem;
+  }
+  .config-banner a {
+    color: #fde68a; text-decoration: underline; cursor: pointer;
+  }
+  .config-banner.hidden { display: none; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; background: var(--navy-mid); padding: 0 28px;
+  }
+  .tab {
+    padding: 10px 20px; font-size: 0.82rem; font-weight: 500;
+    color: rgba(255,255,255,0.55); cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s; letter-spacing: 0.04em;
+    text-transform: uppercase; user-select: none;
+  }
+  .tab:hover { color: rgba(255,255,255,0.85); }
+  .tab.active { color: var(--gold-light); border-bottom-color: var(--gold-light); }
+
+  /* ── MAIN ── */
+  main { padding: 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── STATS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 28px;
+  }
+  .stat-card {
+    background: #fff; border-radius: var(--radius);
+    padding: 20px 22px; box-shadow: var(--shadow);
+    border-top: 4px solid var(--navy-light);
+    transition: transform 0.15s; cursor: default;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card.gold  { border-top-color: var(--gold); }
+  .stat-card.green { border-top-color: var(--green); }
+  .stat-card.red   { border-top-color: var(--red); }
+  .stat-label {
+    font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.6rem; font-weight: 500;
+    color: var(--navy); line-height: 1;
+  }
+  .stat-sub { font-size: 0.73rem; color: var(--text-muted); margin-top: 5px; }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex; gap: 12px; align-items: center;
+    flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .search-box { flex: 1; min-width: 220px; position: relative; }
+  .search-box input {
+    width: 100%; padding: 9px 14px 9px 38px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+    background: #fff; color: var(--text); outline: none;
+    transition: border 0.2s;
+  }
+  .search-box input:focus { border-color: var(--navy-light); }
+  .search-box .icon {
+    position: absolute; left: 11px; top: 50%;
+    transform: translateY(-50%); color: var(--text-muted); font-size: 15px;
+  }
+  select.filter-select {
+    padding: 9px 14px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; background: #fff; color: var(--text);
+    outline: none; cursor: pointer;
+  }
+  .btn {
+    padding: 9px 18px; border-radius: 8px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.18s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-primary:hover { background: var(--navy-light); }
+  .btn-gold { background: var(--gold); color: #fff; }
+  .btn-gold:hover { background: var(--gold-light); color: var(--navy); }
+  .btn-outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); }
+  .btn-outline:hover { background: var(--blue-light); }
+  .btn-sync { background: var(--sync-color); color: #fff; }
+  .btn-sync:hover { background: #1d4ed8; }
+  .btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #8b2525; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: #fff; border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .table-header-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--cream-dark);
+    background: var(--cream);
+  }
+  .table-title { font-weight: 700; font-size: 0.9rem; color: var(--navy); }
+  .record-count { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--text-muted); }
+  .table-container { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  thead th {
+    background: var(--navy); color: rgba(255,255,255,0.85);
+    padding: 10px 14px; text-align: left; font-weight: 600;
+    font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.06em;
+    white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  thead th:hover { background: var(--navy-light); }
+  thead th .sort-icon { opacity: 0.4; margin-left: 4px; }
+  thead th.sorted .sort-icon { opacity: 1; color: var(--gold-light); }
+  tbody tr { border-bottom: 1px solid var(--cream-dark); transition: background 0.12s; }
+  tbody tr:hover { background: var(--blue-light); }
+  tbody tr.date-group-first td:first-child { border-left: 4px solid var(--gold); }
+  td { padding: 10px 14px; vertical-align: top; color: var(--text); }
+  td.date-cell { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--navy-mid); font-weight: 600; white-space: nowrap; }
+  td.vote-cell { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: #5a4a2a; background: #fdf5e0; max-width: 90px; white-space: normal; word-break: break-word; }
+  td.ev-cell { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text-muted); max-width: 90px; white-space: normal; word-break: break-word; }
+  td.obl-cell { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: #2a5a5a; max-width: 90px; white-space: normal; word-break: break-word; }
+  td.amount-cell { font-family: 'DM Mono', monospace; font-weight: 600; text-align: right; white-space: nowrap; color: var(--navy); }
+  td.name-cell { max-width: 320px; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.03em;
+  }
+  .badge-green   { background: var(--green-light); color: var(--green); }
+  .badge-grey    { background: var(--cream-dark); color: var(--text-muted); }
+  .badge-blue    { background: var(--blue-light); color: var(--navy-light); }
+  .badge-paid    { background: #d4f0e2; color: #1a7a4a; }
+  .badge-pending-pay { background: #fff3cd; color: #856404; }
+  .badge-partial { background: #ffe5d0; color: #b85a00; }
+  .badge-na      { background: #e8e8f0; color: #7a7a9a; font-style: italic; }
+  .badge-purple  { background: #ede0fb; color: #6b21a8; }
+  .badge-conflict{ background: #fff7ed; color: #ea580c; border: 1px solid #fdba74; }
+
+  /* ── TAG INPUT ── */
+  .tag-input-wrap {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 8px 10px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: #fff;
+    min-height: 44px; align-items: center; cursor: text;
+    transition: border 0.2s, box-shadow 0.2s;
+  }
+  .tag-input-wrap:focus-within {
+    border-color: var(--navy-light);
+    box-shadow: 0 0 0 3px rgba(37,77,143,0.1);
+  }
+  .vote-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fdf5e0; border: 1px solid #e8c86a; color: #5a4a2a;
+    font-family: 'DM Mono', monospace; font-size: 0.78rem;
+    padding: 3px 8px 3px 10px; border-radius: 20px; white-space: nowrap;
+  }
+  .vote-tag .tag-remove {
+    cursor: pointer; font-size: 0.75rem; color: #8a7a4a;
+    line-height: 1; padding: 0 2px; border-radius: 50%;
+    transition: color 0.15s;
+  }
+  .vote-tag .tag-remove:hover { color: var(--red); }
+  .tag-text-input {
+    border: none !important; outline: none !important;
+    box-shadow: none !important; padding: 2px 4px !important;
+    font-size: 0.88rem; min-width: 160px; flex: 1; background: transparent;
+  }
+
+  /* ── INLINE TOGGLES ── */
+  .itmis-toggle, .pay-toggle {
+    display: inline-flex; border-radius: 20px;
+    overflow: hidden; border: 1.5px solid var(--border);
+    font-size: 0.72rem; font-weight: 600;
+  }
+  .itmis-toggle button, .pay-toggle button {
+    border: none; background: transparent; padding: 4px 10px;
+    cursor: pointer; color: var(--text-muted);
+    transition: background 0.15s, color 0.15s; white-space: nowrap;
+  }
+  .itmis-toggle button.active-yes  { background: #6b21a8; color: #fff; }
+  .itmis-toggle button.active-no   { background: #f0a500; color: #fff; }
+  .pay-toggle button.active-paid    { background: var(--green); color: #fff; }
+  .pay-toggle button.active-pending { background: #f0a500; color: #fff; }
+  .pay-toggle button.active-partial { background: #e07030; color: #fff; }
+  .itmis-toggle button:hover:not(.active-yes):not(.active-no),
+  .pay-toggle  button:hover:not(.active-paid):not(.active-pending):not(.active-partial) { background: var(--cream-dark); }
+  .actions-cell { white-space: nowrap; }
+
+  /* ── FORM PANEL ── */
+  .panel { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .panel-header {
+    background: var(--navy); color: #fff;
+    padding: 16px 24px; display: flex; align-items: center; gap: 10px;
+  }
+  .panel-header h2 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 1.1rem; }
+  .panel-body { padding: 28px; }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px; margin-bottom: 24px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full-width { grid-column: 1 / -1; }
+  label {
+    font-size: 0.75rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted);
+  }
+  input[type="text"], input[type="date"], input[type="number"], textarea, select {
+    padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: var(--text);
+    background: #fff; outline: none; transition: border 0.2s, box-shadow 0.2s;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--navy-light);
+    box-shadow: 0 0 0 3px rgba(37,77,143,0.1);
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; padding-top: 18px; border-top: 1px solid var(--cream-dark); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,32,68,0.55);
+    z-index: 200; display: none;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px;
+    width: 90%; max-width: 700px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 8px 48px rgba(15,32,68,0.35);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.96) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  .modal-header {
+    background: var(--navy); color: #fff;
+    padding: 18px 24px; display: flex; align-items: center;
+    justify-content: space-between; border-radius: 12px 12px 0 0;
+  }
+  .modal-header h3 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 1.1rem; }
+  .modal-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 22px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  .modal-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .modal-body  { padding: 28px; }
+  .modal-footer { display: flex; gap: 12px; justify-content: flex-end; padding: 16px 28px; border-top: 1px solid var(--cream-dark); }
+
+  /* ── CONFLICT DIALOG ── */
+  .conflict-body { padding: 24px; }
+  .conflict-body h4 { color: #ea580c; margin-bottom: 8px; font-size: 1rem; }
+  .conflict-body p  { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; }
+  .conflict-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .conflict-card { border: 2px solid var(--border); border-radius: 8px; padding: 14px; font-size: 0.82rem; }
+  .conflict-card.mine  { border-color: var(--navy-light); background: #f0f5ff; }
+  .conflict-card.sheet { border-color: #22c55e; background: #f0fdf4; }
+  .conflict-card h5 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .conflict-card h5.mine-h  { color: var(--navy-light); }
+  .conflict-card h5.sheet-h { color: #16a34a; }
+  .conflict-card .diff-field { margin-bottom: 4px; }
+  .conflict-card .diff-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .conflict-card .diff-value { font-family: 'DM Mono', monospace; font-size: 0.8rem; word-break: break-word; }
+
+  /* ── CONFIRM DIALOG ── */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(15,32,68,0.6);
+    z-index: 300; display: none; align-items: center; justify-content: center;
+  }
+  .confirm-overlay.open { display: flex; }
+  .confirm-box {
+    background: #fff; border-radius: 12px; padding: 32px;
+    width: 90%; max-width: 400px; text-align: center;
+    box-shadow: 0 8px 48px rgba(15,32,68,0.4);
+  }
+  .confirm-icon { font-size: 40px; margin-bottom: 14px; }
+  .confirm-box h4 { font-size: 1.1rem; margin-bottom: 8px; color: var(--navy); }
+  .confirm-box p  { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 22px; }
+  .confirm-buttons { display: flex; gap: 12px; justify-content: center; }
+
+  /* ── SETTINGS PANEL ── */
+  .settings-form { max-width: 540px; }
+  .settings-form .form-group { margin-bottom: 18px; }
+  .settings-form input[type="text"] { font-family: 'DM Mono', monospace; font-size: 0.84rem; }
+  .settings-note { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── PRINT ── */
+  .print-only { display: none; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.95rem; }
+
+  /* ── TOAST ── */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--navy); color: #fff;
+    padding: 12px 20px; border-radius: 8px; font-size: 0.85rem;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    animation: toastIn 0.25s ease; max-width: 340px;
+  }
+  .toast.success { border-left: 4px solid #4caf50; }
+  .toast.error   { border-left: 4px solid var(--red); }
+  .toast.warning { border-left: 4px solid #f59e0b; }
+  .toast.info    { border-left: 4px solid var(--sync-color); }
+  @keyframes toastIn { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
+
+  /* ── SUMMARY ── */
+  .summary-section { margin-bottom: 28px; }
+  .summary-section h3 {
+    font-size: 0.9rem; font-weight: 700; color: var(--navy);
+    margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .summary-table-wrap { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .summary-table th { background: var(--navy-mid); color: rgba(255,255,255,0.85); padding: 10px 16px; text-align: left; font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .summary-table td { padding: 10px 16px; border-bottom: 1px solid var(--cream-dark); }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-table tr:hover td { background: var(--blue-light); }
+  .summary-table .total-row td { font-weight: 700; background: var(--cream-dark); color: var(--navy); border-top: 2px solid var(--border); }
+  .summary-clickable { cursor: pointer; transition: background 0.15s; }
+  .summary-clickable:hover td { background: #deeafc !important; }
+  .summary-clickable:hover td:first-child { text-decoration: underline; text-decoration-color: var(--navy-light); }
+  tr.month-header td { background: var(--navy-mid); color: rgba(255,255,255,0.9); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 7px 14px; border-bottom: none; }
+  tr.month-header td .month-meta { font-weight: 400; font-size: 0.72rem; color: rgba(255,255,255,0.55); margin-left: 12px; letter-spacing: 0.04em; text-transform: none; }
+  tr.month-subtotal td { background: #eef2f9; font-size: 0.75rem; color: var(--navy-mid); font-weight: 600; padding: 5px 14px; border-top: 1px solid #c8d4ea; border-bottom: 2px solid var(--navy-light); }
+
+  /* ── SECTION VISIBILITY ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  @media print {
+    header, .tabs, .toolbar, .btn, .actions-cell, .sync-bar, .config-banner { display: none !important; }
+    .print-only { display: block; }
+    body { background: #fff; }
+    .table-wrap { box-shadow: none; border: 1px solid #ccc; }
+  }
+  @media (max-width: 768px) {
+    main { padding: 16px; }
+    .header-inner { padding: 12px 16px; }
+    .tabs, .sync-bar { padding: 0 16px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    td { padding: 8px 10px; }
+    .conflict-cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-emblem">🦁</div>
+    <div class="header-text">
+      <h1>ITMIS Daily Updating Register</h1>
+      <p>Divisional Secretariat · Horowpothana · North Central Province</p>
+    </div>
+    <div class="header-right">
+      <span class="header-date" id="currentDate"></span>
+      <button class="btn btn-sync btn-sm" onclick="syncNow()" id="syncBtn" title="Sync with Google Sheets">⟳ Sync</button>
+      <button class="btn btn-gold btn-sm" onclick="openAddModal()">＋ New Entry</button>
+      <button class="btn btn-outline btn-sm" onclick="printRegister()">🖨 Print</button>
+    </div>
+  </div>
+  <div class="sync-bar">
+    <span class="sync-indicator">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncStatus">Not connected</span>
+    </span>
+    <span id="syncLastTime" class="sync-last"></span>
+  </div>
+  <!-- Config banner shown when no Script URL is set -->
+  <div class="config-banner" id="configBanner">
+    ⚠️ Google Sheets not configured. <a onclick="showTab('settings')">Open Settings</a> to enter your Apps Script URL.
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('register')">📋 Register</div>
+    <div class="tab" onclick="showTab('summary')">📊 Summary</div>
+    <div class="tab" onclick="showTab('add')">✏️ Add Entry</div>
+    <div class="tab" onclick="showTab('settings')">⚙️ Settings</div>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══ REGISTER TAB ═══ -->
+<div class="section active" id="tab-register">
+  <div class="stats-grid" id="statsGrid"></div>
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search by name, EV No, vote, OBL…" oninput="renderTable()">
+    </div>
+    <select class="filter-select" id="filterMonth" onchange="renderTable()">
+      <option value="">All Months</option>
+    </select>
+    <select class="filter-select" id="filterDate" onchange="renderTable()">
+      <option value="">All Dates</option>
+    </select>
+    <select class="filter-select" id="filterUpdated" onchange="renderTable()">
+      <option value="">All Status</option>
+      <option value="ev_pending">EV No: Pending</option>
+      <option value="updated">Google Sheet Updated</option>
+      <option value="pending">Google Sheet Pending</option>
+      <option value="gsheet_na">Google Sheet N/A</option>
+      <option value="imprest">Imprest Received</option>
+      <option value="no_imprest">Imprest Not Received</option>
+      <option value="imprest_na">Imprest N/A</option>
+      <option value="imprest_paid">Imprest: Paid</option>
+      <option value="imprest_notpaid">Imprest: Not Paid</option>
+      <option value="pay_paid">Payment: Paid</option>
+      <option value="pay_pending">Payment: Pending</option>
+      <option value="pay_partial">Payment: Partial</option>
+      <option value="itmis_yes">ITMIS: Updated</option>
+      <option value="itmis_no">ITMIS: Not Updated</option>
+    </select>
+    <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+  <div class="table-wrap">
+    <div class="table-header-bar">
+      <span class="table-title">Expenditure Voucher Entries</span>
+      <span class="record-count" id="recordCount">0 records</span>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('date')">Date <span class="sort-icon" id="sort-date">↕</span></th>
+            <th onclick="sortBy('vote')" style="width:90px">Vote <span class="sort-icon" id="sort-vote">↕</span></th>
+            <th onclick="sortBy('obl')"  style="width:90px">OBL No <span class="sort-icon" id="sort-obl">↕</span></th>
+            <th onclick="sortBy('ev')"   style="width:90px">EV No <span class="sort-icon" id="sort-ev">↕</span></th>
+            <th onclick="sortBy('name')">Name / Description <span class="sort-icon" id="sort-name">↕</span></th>
+            <th onclick="sortBy('amount')" style="text-align:right">Amount (Rs.) <span class="sort-icon" id="sort-amount">↕</span></th>
+            <th onclick="sortBy('gsheet')">Google Sheet Updated <span class="sort-icon" id="sort-gsheet">↕</span></th>
+            <th onclick="sortBy('imprest')">Imprest Received <span class="sort-icon" id="sort-imprest">↕</span></th>
+            <th onclick="sortBy('imprestPaid')">Imprest Paid <span class="sort-icon" id="sort-imprestPaid">↕</span></th>
+            <th onclick="sortBy('paymentStatus')">Payment Status <span class="sort-icon" id="sort-paymentStatus">↕</span></th>
+            <th onclick="sortBy('itmisUpdated')">ITMIS Updated <span class="sort-icon" id="sort-itmisUpdated">↕</span></th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="empty-state" style="display:none">
+      <div class="empty-icon">📄</div>
+      <p>No records found matching your search.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SUMMARY TAB ═══ -->
+<div class="section" id="tab-summary">
+  <div class="stats-grid" id="summaryStatsGrid"></div>
+  <div class="summary-section">
+    <h3>🖥️ ITMIS Update Status</h3>
+    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Category</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th></tr></thead><tbody id="summaryByItmis"></tbody></table></div>
+  </div>
+  <div class="summary-section">
+    <h3>📋 Google Sheet Update Status</h3>
+    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Category</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th></tr></thead><tbody id="summaryByGsheet"></tbody></table></div>
+  </div>
+  <div class="summary-section">
+    <h3>📦 Imprest Status Breakdown</h3>
+    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Category</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th></tr></thead><tbody id="summaryByImprest"></tbody></table></div>
+  </div>
+  <div class="summary-section">
+    <h3>💳 Payment Status Breakdown</h3>
+    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Status</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th></tr></thead><tbody id="summaryByPayment"></tbody></table></div>
+  </div>
+  <div class="summary-section">
+    <h3>📅 Entries by Date</h3>
+    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Date</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th><th>Status</th></tr></thead><tbody id="summaryByDate"></tbody></table></div>
+  </div>
+  <div class="summary-section">
+    <h3>🏷️ Entries by Vote Code</h3>
+    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>Vote Code</th><th>Entries</th><th style="text-align:right">Total Amount (Rs.)</th></tr></thead><tbody id="summaryByVote"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══ ADD ENTRY TAB ═══ -->
+<div class="section" id="tab-add">
+  <div class="panel">
+    <div class="panel-header"><span>✏️</span><h2>Add New Expenditure Voucher Entry</h2></div>
+    <div class="panel-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="add-date">
+        </div>
+        <div class="form-group">
+          <label>Vote * <span style="font-size:0.68rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(Enter or Tab for multiple)</span></label>
+          <div class="tag-input-wrap" id="add-vote-wrap" onclick="document.getElementById('add-vote-input').focus()">
+            <input type="text" id="add-vote-input" class="tag-text-input" placeholder="e.g. 274-1-2-0-1403" onkeydown="handleVoteKeydown(event)" onblur="commitVoteTag()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>OBL No</label>
+          <input type="text" id="add-obl" placeholder="e.g. 2026-2740300-OBL-00000050">
+        </div>
+        <div class="form-group">
+          <label>EV No <span style="font-size:0.68rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(optional — Enter or Tab for multiple)</span></label>
+          <div class="tag-input-wrap" id="add-ev-wrap" onclick="document.getElementById('add-ev-input').focus()">
+            <input type="text" id="add-ev-input" class="tag-text-input" placeholder="e.g. 2026-2740300-EV-00000093" onkeydown="handleEvKeydown(event)" onblur="commitEvTag()">
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label>Name / Description *</label>
+          <textarea id="add-name" placeholder="Enter description of the expenditure…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Amount (Rs.) *</label>
+          <input type="number" id="add-amount" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Google Sheet Update Date</label>
+          <input type="date" id="add-gsheet" onchange="if(this.value) document.getElementById('add-gsheetNA').checked=false;">
+          <label style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" id="add-gsheetNA" onchange="if(this.checked) document.getElementById('add-gsheet').value='';">
+            Not required for this entry
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Imprest Receive Date</label>
+          <input type="date" id="add-imprest" onchange="toggleImprestPaidAdd(); if(this.value) document.getElementById('add-imprestNA').checked=false;">
+          <label style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" id="add-imprestNA" onchange="if(this.checked){document.getElementById('add-imprest').value=''; toggleImprestPaidAdd();}">
+            Not required for this entry
+          </label>
+        </div>
+        <div class="form-group" id="add-imprestPaid-group" style="display:none">
+          <label>Imprest Paid?</label>
+          <select id="add-imprestPaid">
+            <option value="no">⏳ Not Paid</option>
+            <option value="yes">✅ Paid</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Payment Status</label>
+          <select id="add-paymentStatus">
+            <option value="pending">⏳ Pending</option>
+            <option value="paid">✅ Paid</option>
+            <option value="partial">🔶 Partial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ITMIS Updated?</label>
+          <select id="add-itmisUpdated">
+            <option value="no">⏳ Not Yet Updated</option>
+            <option value="yes">✅ Updated in ITMIS</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" id="add-notes" placeholder="Optional notes…">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" onclick="clearAddForm()">Clear</button>
+        <button class="btn btn-primary" onclick="addEntry()">Save &amp; Sync</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS TAB ═══ -->
+<div class="section" id="tab-settings">
+  <div class="panel">
+    <div class="panel-header"><span>⚙️</span><h2>Settings &amp; Google Sheets Configuration</h2></div>
+    <div class="panel-body">
+      <div class="settings-form">
+        <div class="form-group">
+          <label>Apps Script Web App URL *</label>
+          <input type="text" id="cfg-url" placeholder="https://script.google.com/macros/s/…/exec">
+          <div class="settings-note">Deploy your Code.gs as a Web App and paste the URL here.</div>
+        </div>
+        <div class="form-group">
+          <label>Secret Token *</label>
+          <input type="text" id="cfg-token" placeholder="itmis_hpw_2026">
+          <div class="settings-note">Must match the SECRET_TOKEN in your Code.gs.</div>
+        </div>
+        <div class="form-group">
+          <label>Auto-sync interval</label>
+          <select id="cfg-interval">
+            <option value="0">Off (manual sync only)</option>
+            <option value="30000">Every 30 seconds</option>
+            <option value="60000" selected>Every 1 minute</option>
+            <option value="300000">Every 5 minutes</option>
+          </select>
+        </div>
+        <div class="form-actions" style="justify-content:flex-start;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+          <button class="btn btn-sync"    onclick="syncNow()">⟳ Test Connection</button>
+          <button class="btn btn-outline" onclick="migrateLocalData()" title="One-time migration of old localStorage data">📤 Migrate Old Data</button>
+          <button class="btn btn-danger"  onclick="clearLocalCache()" title="Remove local cache and reload from Sheet">🗑 Clear Local Cache</button>
+        </div>
+        <div id="settingsStatus" style="margin-top:18px;font-size:0.85rem;color:var(--text-muted)"></div>
+      </div>
+
+      <hr style="margin:28px 0;border:none;border-top:1px solid var(--cream-dark)">
+
+      <h3 style="font-size:0.9rem;font-weight:700;color:var(--navy);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.05em">📖 Setup Guide</h3>
+      <div style="font-size:0.85rem;line-height:1.8;color:var(--text-muted);max-width:600px">
+        <p style="margin-bottom:10px"><strong style="color:var(--navy)">Step 1 — Google Sheet</strong><br>
+        Create a new Google Sheet. Give it any name (e.g. "ITMIS Register 2026").</p>
+        <p style="margin-bottom:10px"><strong style="color:var(--navy)">Step 2 — Apps Script</strong><br>
+        Extensions → Apps Script → paste <code>Code.gs</code> content → Save.</p>
+        <p style="margin-bottom:10px"><strong style="color:var(--navy)">Step 3 — Deploy</strong><br>
+        Deploy → New deployment → Web App → Execute as: <strong>Me</strong> → Access: <strong>Anyone</strong> → Deploy → Copy URL.</p>
+        <p style="margin-bottom:10px"><strong style="color:var(--navy)">Step 4 — Set token</strong><br>
+        Change <code>SECRET_TOKEN</code> in Code.gs to something private, then paste the same value above.</p>
+        <p style="margin-bottom:10px"><strong style="color:var(--navy)">Step 5 — GitHub Pages</strong><br>
+        Push <code>index.html</code>, <code>manifest.json</code>, <code>sw.js</code>, and icon files to a GitHub repo → Settings → Pages → Deploy from main branch.</p>
+        <p><strong style="color:var(--navy)">Step 6 — Install PWA</strong><br>
+        Desktop: Open in Chrome → address bar → Install icon. Android: Open in Chrome → menu → "Add to Home Screen".</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ═══ EDIT MODAL ═══ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header"><h3>✏️ Edit Entry</h3><button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="form-grid">
+        <div class="form-group"><label>Date *</label><input type="date" id="edit-date"></div>
+        <div class="form-group"><label>Vote *</label><input type="text" id="edit-vote"></div>
+        <div class="form-group"><label>OBL No</label><input type="text" id="edit-obl"></div>
+        <div class="form-group"><label>EV No *</label><input type="text" id="edit-ev"></div>
+        <div class="form-group full-width"><label>Name / Description *</label><textarea id="edit-name"></textarea></div>
+        <div class="form-group"><label>Amount (Rs.) *</label><input type="number" id="edit-amount" step="0.01"></div>
+        <div class="form-group">
+          <label>Google Sheet Update Date</label>
+          <input type="date" id="edit-gsheet" onchange="if(this.value) document.getElementById('edit-gsheetNA').checked=false;">
+          <label style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" id="edit-gsheetNA" onchange="if(this.checked) document.getElementById('edit-gsheet').value='';">
+            Not required for this entry
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Imprest Receive Date</label>
+          <input type="date" id="edit-imprest" onchange="toggleImprestPaidEdit(); if(this.value) document.getElementById('edit-imprestNA').checked=false;">
+          <label style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" id="edit-imprestNA" onchange="if(this.checked){document.getElementById('edit-imprest').value=''; toggleImprestPaidEdit();}">
+            Not required for this entry
+          </label>
+        </div>
+        <div class="form-group" id="edit-imprestPaid-group">
+          <label>Imprest Paid?</label>
+          <select id="edit-imprestPaid"><option value="no">⏳ Not Paid</option><option value="yes">✅ Paid</option></select>
+        </div>
+        <div class="form-group">
+          <label>Payment Status</label>
+          <select id="edit-paymentStatus"><option value="pending">⏳ Pending</option><option value="paid">✅ Paid</option><option value="partial">🔶 Partial</option></select>
+        </div>
+        <div class="form-group">
+          <label>ITMIS Updated?</label>
+          <select id="edit-itmisUpdated"><option value="no">⏳ Not Yet Updated</option><option value="yes">✅ Updated in ITMIS</option></select>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" id="edit-notes"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Update &amp; Sync</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ QUICK ADD EV MODAL ═══ -->
+<div class="modal-overlay" id="addEvModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header" style="background:#d07000"><h3>⚡ Add EV No</h3><button class="modal-close" onclick="closeModal('addEvModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="addEv-id">
+      <div style="background:#fff8ec;border:1px solid #e8c86a;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:0.85rem">
+        <div style="font-weight:700;color:#5a4a2a;margin-bottom:4px" id="addEv-name-preview"></div>
+        <div style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:0.78rem" id="addEv-info-preview"></div>
+      </div>
+      <div class="form-group">
+        <label>EV No <span style="font-size:0.68rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(press Enter or Tab to add multiple)</span></label>
+        <div class="tag-input-wrap" id="quickEv-wrap" onclick="document.getElementById('quickEv-input').focus()">
+          <input type="text" id="quickEv-input" class="tag-text-input" placeholder="e.g. 2026-2740300-EV-00000093" onkeydown="handleQuickEvKeydown(event)" onblur="commitQuickEvTag()">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addEvModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQuickEv()">Save EV &amp; Sync</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFLICT MODAL ═══ -->
+<div class="modal-overlay" id="conflictModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header" style="background:#ea580c"><h3>⚠️ Sync Conflict</h3><button class="modal-close" onclick="resolveConflict('cancel')">✕</button></div>
+    <div class="conflict-body">
+      <h4>This record was changed on another device</h4>
+      <p id="conflictDesc">The record in Google Sheets is newer than what you loaded. Choose which version to keep.</p>
+      <div class="conflict-cards">
+        <div class="conflict-card mine">
+          <h5 class="mine-h">🖥️ Your Version</h5>
+          <div id="conflictMine"></div>
+        </div>
+        <div class="conflict-card sheet">
+          <h5 class="sheet-h">📊 Sheet Version (newer)</h5>
+          <div id="conflictSheet"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="resolveConflict('cancel')">Cancel</button>
+      <button class="btn" style="background:#6b7280;color:#fff" onclick="resolveConflict('sheet')">Keep Sheet Version</button>
+      <button class="btn btn-primary" onclick="resolveConflict('mine')">Keep My Version</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIRM DELETE ═══ -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <h4>Delete Entry?</h4>
+    <p>This will permanently remove the entry from Google Sheets. This action cannot be undone.</p>
+    <div class="confirm-buttons">
+      <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger"  onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// ITMIS Daily Updating Register — PWA with Google Sheets Sync
+// ════════════════════════════════════════════════════════════════════
+
+// ── CONFIG (loaded from localStorage) ──────────────────────────────
+let SCRIPT_URL = '';
+let SECRET_TOKEN = '';
+let SYNC_INTERVAL = 60000;
+let syncTimer = null;
+
+function loadConfig() {
+  SCRIPT_URL   = localStorage.getItem('itmis_script_url') || '';
+  SECRET_TOKEN = localStorage.getItem('itmis_token')      || '';
+  SYNC_INTERVAL= parseInt(localStorage.getItem('itmis_interval') || '60000', 10);
+  document.getElementById('cfg-url').value      = SCRIPT_URL;
+  document.getElementById('cfg-token').value    = SECRET_TOKEN;
+  document.getElementById('cfg-interval').value = String(SYNC_INTERVAL);
+  document.getElementById('configBanner').classList.toggle('hidden', !!SCRIPT_URL);
+}
+
+function saveSettings() {
+  SCRIPT_URL    = document.getElementById('cfg-url').value.trim();
+  SECRET_TOKEN  = document.getElementById('cfg-token').value.trim();
+  SYNC_INTERVAL = parseInt(document.getElementById('cfg-interval').value, 10);
+  localStorage.setItem('itmis_script_url', SCRIPT_URL);
+  localStorage.setItem('itmis_token',      SECRET_TOKEN);
+  localStorage.setItem('itmis_interval',   SYNC_INTERVAL);
+  document.getElementById('configBanner').classList.toggle('hidden', !!SCRIPT_URL);
+  startAutoSync();
+  showToast('Settings saved!', 'success');
+  document.getElementById('settingsStatus').textContent = '';
+  syncNow();
+}
+
+// ── DATA ────────────────────────────────────────────────────────────
+let records = [];
+let sortField = 'date', sortDir = 1;
+let deleteTarget = null;
+let sheetLastModified = null;   // ISO string from sheet Meta
+let localLastModified = null;   // ISO string of last successful pull
+
+// ── LOCALSTORAGE CACHE ──────────────────────────────────────────────
+function saveCache() {
+  localStorage.setItem('itmis_records',  JSON.stringify(records));
+  localStorage.setItem('itmis_sheetLM',  sheetLastModified || '');
+}
+function loadCache() {
+  const raw = localStorage.getItem('itmis_records');
+  if (raw) { try { records = JSON.parse(raw); } catch { records = []; } }
+  sheetLastModified = localStorage.getItem('itmis_sheetLM') || null;
+}
+
+// ── SYNC ENGINE ─────────────────────────────────────────────────────
+let isSyncing = false;
+
+function setSyncStatus(state, msg) {
+  const dot  = document.getElementById('syncDot');
+  const text = document.getElementById('syncStatus');
+  dot.className  = 'sync-dot ' + state;
+  text.textContent = msg;
+}
+
+function setSyncLastTime(iso) {
+  const el = document.getElementById('syncLastTime');
+  if (!iso) { el.textContent = ''; return; }
+  const d = new Date(iso);
+  el.textContent = 'Last synced ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function apiCall(body) {
+  if (!SCRIPT_URL) throw new Error('No Script URL configured');
+  body.token = SECRET_TOKEN;
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },  // text/plain avoids CORS preflight
+    body: JSON.stringify(body),
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'API error');
+  return data;
+}
+
+async function syncNow(silent = false) {
+  if (!SCRIPT_URL) {
+    setSyncStatus('error', 'Not configured');
+    if (!silent) showToast('Configure Apps Script URL in Settings first.', 'error');
+    return;
+  }
+  if (isSyncing) return;
+  isSyncing = true;
+  setSyncStatus('syncing', 'Syncing…');
+  document.getElementById('syncBtn').disabled = true;
+
+  try {
+    const data = await apiCall({ action: 'getAll' });
+    records = data.records;
+    sheetLastModified = data.sheetLastModified;
+    localLastModified = new Date().toISOString();
+    saveCache();
+    refresh();
+    setSyncStatus('synced', 'Synced with Google Sheets');
+    setSyncLastTime(localLastModified);
+    if (!silent) showToast('Synced successfully ✅', 'success');
+    document.getElementById('settingsStatus').textContent = '✅ Connection successful!';
+  } catch (err) {
+    setSyncStatus('error', 'Sync failed — ' + err.message);
+    if (!silent) showToast('Sync failed: ' + err.message, 'error');
+    document.getElementById('settingsStatus').textContent = '❌ ' + err.message;
+  } finally {
+    isSyncing = false;
+    document.getElementById('syncBtn').disabled = false;
+  }
+}
+
+async function pushRecord(record) {
+  if (!SCRIPT_URL) { saveCache(); return; }
+  setSyncStatus('syncing', 'Saving…');
+  try {
+    // Conflict check: if sheet was modified since we last pulled
+    if (sheetLastModified && localLastModified) {
+      const sheetTs = new Date(sheetLastModified).getTime();
+      const localTs = new Date(localLastModified).getTime();
+      if (sheetTs > localTs + 3000) {
+        // Sheet changed — fetch latest version of this specific record for comparison
+        const sheetData = await apiCall({ action: 'getAll' });
+        const sheetRec  = sheetData.records.find(r => r.id === record.id);
+        if (sheetRec && sheetRec.lastModified !== record.lastModified) {
+          // Real conflict — show dialog
+          isSyncing = false;
+          document.getElementById('syncBtn').disabled = false;
+          await showConflictDialog(record, sheetRec, sheetData.records);
+          return;
+        }
+        // No conflict on this record — update sheetLastModified and proceed
+        sheetLastModified = sheetData.sheetLastModified;
+        localLastModified = new Date().toISOString();
+        // Merge other records that aren't the one we're saving
+        const others = sheetData.records.filter(r => r.id !== record.id);
+        records = [...others, record].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+      }
+    }
+
+    await apiCall({ action: 'save', record });
+    sheetLastModified = new Date().toISOString();
+    localLastModified = sheetLastModified;
+    saveCache();
+    setSyncStatus('synced', 'Saved to Google Sheets');
+    setSyncLastTime(localLastModified);
+  } catch (err) {
+    setSyncStatus('error', 'Save failed — ' + err.message);
+    showToast('Save failed: ' + err.message + ' (data kept locally)', 'error');
+    saveCache();   // keep locally even if push failed
+  } finally {
+    isSyncing = false;
+    document.getElementById('syncBtn').disabled = false;
+  }
+}
+
+async function deleteFromSheet(id) {
+  if (!SCRIPT_URL) { saveCache(); return; }
+  setSyncStatus('syncing', 'Deleting…');
+  try {
+    await apiCall({ action: 'delete', id });
+    sheetLastModified = new Date().toISOString();
+    localLastModified = sheetLastModified;
+    saveCache();
+    setSyncStatus('synced', 'Deleted from Google Sheets');
+    setSyncLastTime(localLastModified);
+  } catch (err) {
+    setSyncStatus('error', 'Delete failed — ' + err.message);
+    showToast('Delete sync failed: ' + err.message, 'error');
+  }
+}
+
+// ── CONFLICT DIALOG ─────────────────────────────────────────────────
+let conflictResolve = null;
+
+function showConflictDialog(myRec, sheetRec, allSheetRecords) {
+  return new Promise(resolve => {
+    conflictResolve = { resolve, myRec, sheetRec, allSheetRecords };
+
+    const fields = ['date','vote','obl','ev','name','amount','gsheet','imprest','paymentStatus','itmisUpdated','notes'];
+    const labels = { date:'Date', vote:'Vote', obl:'OBL No', ev:'EV No', name:'Description',
+                     amount:'Amount', gsheet:'GSheet Date', imprest:'Imprest Date',
+                     paymentStatus:'Payment', itmisUpdated:'ITMIS', notes:'Notes' };
+
+    function buildCard(rec) {
+      return fields.filter(f => String(rec[f]||'') !== '').map(f =>
+        `<div class="diff-field">
+          <div class="diff-label">${labels[f]}</div>
+          <div class="diff-value">${escHtml(String(rec[f]||''))}</div>
+        </div>`
+      ).join('');
+    }
+
+    document.getElementById('conflictMine').innerHTML  = buildCard(myRec);
+    document.getElementById('conflictSheet').innerHTML = buildCard(sheetRec);
+    document.getElementById('conflictDesc').textContent =
+      `"${myRec.name.substring(0,60)}" — the Sheet version is newer. Choose which to keep.`;
+
+    setSyncStatus('conflict', 'Conflict — action needed');
+    openModal('conflictModal');
+  });
+}
+
+async function resolveConflict(choice) {
+  closeModal('conflictModal');
+  if (!conflictResolve) return;
+  const { resolve, myRec, sheetRec, allSheetRecords } = conflictResolve;
+  conflictResolve = null;
+
+  if (choice === 'cancel') {
+    setSyncStatus('error', 'Conflict unresolved — sync pending');
+    showToast('Conflict skipped. Sync manually when ready.', 'warning');
+    return;
+  }
+
+  const winner = choice === 'mine' ? myRec : sheetRec;
+  winner.lastModified = new Date().toISOString();
+
+  // Update local records
+  const idx = records.findIndex(r => r.id === winner.id);
+  if (idx !== -1) records[idx] = winner; else records.push(winner);
+
+  // Force-push winner
+  try {
+    await apiCall({ action: 'save', record: winner });
+    sheetLastModified = winner.lastModified;
+    localLastModified = sheetLastModified;
+    saveCache();
+    refresh();
+    setSyncStatus('synced', 'Conflict resolved');
+    showToast(choice === 'mine' ? 'Your version saved ✅' : 'Sheet version kept ✅', 'success');
+  } catch (err) {
+    showToast('Conflict resolve failed: ' + err.message, 'error');
+  }
+}
+
+// ── AUTO-SYNC ───────────────────────────────────────────────────────
+function startAutoSync() {
+  if (syncTimer) clearInterval(syncTimer);
+  if (SYNC_INTERVAL > 0 && SCRIPT_URL) {
+    syncTimer = setInterval(() => syncNow(true), SYNC_INTERVAL);
+  }
+}
+
+// ── MIGRATE OLD LOCALSTORAGE DATA ───────────────────────────────────
+async function migrateLocalData() {
+  const raw = localStorage.getItem('itmisRecords');  // old key
+  if (!raw) { showToast('No old data found to migrate.', 'info'); return; }
+  try {
+    const old = JSON.parse(raw);
+    if (!old.length) { showToast('Old data is empty.', 'info'); return; }
+    // Add lastModified if missing
+    old.forEach(r => { if (!r.lastModified) r.lastModified = new Date().toISOString(); });
+    await apiCall({ action: 'saveMany', records: old });
+    showToast(`Migrated ${old.length} records to Google Sheets ✅`, 'success');
+    await syncNow();
+  } catch (err) {
+    showToast('Migration failed: ' + err.message, 'error');
+  }
+}
+
+function clearLocalCache() {
+  if (!confirm('Clear local cache and reload all data from Google Sheets?')) return;
+  records = [];
+  sheetLastModified = null;
+  localLastModified = null;
+  localStorage.removeItem('itmis_records');
+  localStorage.removeItem('itmis_sheetLM');
+  syncNow();
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────────
+function fmt(n) {
+  return Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, day] = d.split('-');
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(day,10)} ${MONTHS[parseInt(m,10)-1]} ${y}`;
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function genId() { return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+// ── TABS ─────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  const map  = { register: 0, summary: 1, add: 2, settings: 3 };
+  if (map[name] !== undefined) tabs[map[name]].classList.add('active');
+  if (name === 'summary') renderSummary();
+}
+
+// ── ADD ENTRY ────────────────────────────────────────────────────────
+function addEntry() {
+  const date = document.getElementById('add-date').value;
+  commitVoteTag();
+  const vote = addVoteTags.join(', ');
+  commitEvTag();
+  const ev   = addEvTags.join(', ');
+  const name = document.getElementById('add-name').value.trim();
+  const amount = document.getElementById('add-amount').value;
+
+  if (!date || !vote || !name || !amount) {
+    showToast('Please fill in Date, Vote, Name and Amount.', 'error');
+    return;
+  }
+
+  const gsheet     = document.getElementById('add-gsheet').value;
+  const gsheetNA   = document.getElementById('add-gsheetNA').checked;
+  const imprest    = document.getElementById('add-imprest').value;
+  const imprestNA  = document.getElementById('add-imprestNA').checked;
+  const imprestPaid= imprest ? document.getElementById('add-imprestPaid').value : '';
+  const paymentStatus = document.getElementById('add-paymentStatus').value;
+  const itmisUpdated  = document.getElementById('add-itmisUpdated').value;
+  const notes      = document.getElementById('add-notes').value.trim();
+
+  const entry = {
+    id: genId(),
+    date, vote,
+    obl: document.getElementById('add-obl').value.trim(),
+    ev, name,
+    amount: parseFloat(amount),
+    gsheet, gsheetNA, imprest, imprestNA, imprestPaid,
+    paymentStatus, itmisUpdated, notes,
+    lastModified: new Date().toISOString(),
+  };
+
+  records.push(entry);
+  saveCache();
+  clearAddForm();
+  refresh();
+  showTab('register');
+  showToast('Entry saved — syncing…', 'success');
+  pushRecord(entry);
+}
+
+function clearAddForm() {
+  ['add-date','add-obl','add-name','add-amount','add-gsheet','add-imprest','add-notes']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  clearVoteTags(); clearEvTags();
+  document.getElementById('add-paymentStatus').value = 'pending';
+  document.getElementById('add-itmisUpdated').value  = 'no';
+  document.getElementById('add-imprestPaid').value   = 'no';
+  document.getElementById('add-imprestPaid-group').style.display = 'none';
+  document.getElementById('add-gsheetNA').checked  = false;
+  document.getElementById('add-imprestNA').checked = false;
+}
+
+// ── EDIT ─────────────────────────────────────────────────────────────
+function openEdit(id) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('edit-id').value       = r.id;
+  document.getElementById('edit-date').value     = r.date   || '';
+  document.getElementById('edit-vote').value     = r.vote   || '';
+  document.getElementById('edit-obl').value      = r.obl    || '';
+  document.getElementById('edit-ev').value       = r.ev     || '';
+  document.getElementById('edit-name').value     = r.name   || '';
+  document.getElementById('edit-amount').value   = r.amount || '';
+  document.getElementById('edit-gsheet').value   = r.gsheet || '';
+  document.getElementById('edit-gsheetNA').checked = !!r.gsheetNA;
+  document.getElementById('edit-imprest').value  = r.imprest|| '';
+  document.getElementById('edit-imprestNA').checked = !!r.imprestNA;
+  document.getElementById('edit-imprestPaid').value = r.imprestPaid || 'no';
+  document.getElementById('edit-imprestPaid-group').style.display = r.imprest ? '' : 'none';
+  document.getElementById('edit-paymentStatus').value = r.paymentStatus || 'pending';
+  document.getElementById('edit-itmisUpdated').value  = r.itmisUpdated  || 'no';
+  document.getElementById('edit-notes').value    = r.notes  || '';
+  openModal('editModal');
+}
+
+function saveEdit() {
+  const id  = document.getElementById('edit-id').value;
+  const idx = records.findIndex(r => r.id === id);
+  if (idx === -1) return;
+
+  const date = document.getElementById('edit-date').value;
+  const vote = document.getElementById('edit-vote').value.trim();
+  const ev   = document.getElementById('edit-ev').value.trim();
+  const name = document.getElementById('edit-name').value.trim();
+  const amount = document.getElementById('edit-amount').value;
+  if (!date || !vote || !ev || !name || !amount) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  records[idx] = {
+    ...records[idx],
+    date, vote,
+    obl:    document.getElementById('edit-obl').value.trim(),
+    ev, name,
+    amount: parseFloat(amount),
+    gsheet: document.getElementById('edit-gsheet').value,
+    gsheetNA: document.getElementById('edit-gsheetNA').checked,
+    imprest:document.getElementById('edit-imprest').value,
+    imprestNA: document.getElementById('edit-imprestNA').checked,
+    imprestPaid: document.getElementById('edit-imprest').value ? document.getElementById('edit-imprestPaid').value : '',
+    paymentStatus: document.getElementById('edit-paymentStatus').value,
+    itmisUpdated:  document.getElementById('edit-itmisUpdated').value,
+    notes:  document.getElementById('edit-notes').value.trim(),
+    lastModified: new Date().toISOString(),
+  };
+
+  saveCache();
+  closeModal('editModal');
+  refresh();
+  showToast('Updated — syncing…', 'success');
+  pushRecord(records[idx]);
+}
+
+// ── INLINE TOGGLES ───────────────────────────────────────────────────
+function setImprestPaid(id, val) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  r.imprestPaid = val;
+  r.lastModified = new Date().toISOString();
+  saveCache(); renderTable(); renderStats();
+  showToast(val === 'yes' ? 'Imprest marked Paid ✅' : 'Imprest marked Not Paid ⏳', 'success');
+  pushRecord(r);
+}
+function setPayment(id, status) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  r.paymentStatus = status;
+  r.lastModified  = new Date().toISOString();
+  saveCache(); renderTable(); renderStats();
+  const labels = { paid:'Marked Paid ✅', pending:'Marked Pending ⏳', partial:'Marked Partial 🔶' };
+  showToast(labels[status], 'success');
+  pushRecord(r);
+}
+function setItmisUpdated(id, val) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  r.itmisUpdated = val;
+  r.lastModified = new Date().toISOString();
+  saveCache(); renderTable(); renderStats();
+  showToast(val === 'yes' ? 'Marked Updated in ITMIS ✅' : 'Marked Pending ITMIS ⏳', 'success');
+  pushRecord(r);
+}
+
+// ── DELETE ───────────────────────────────────────────────────────────
+function askDelete(id) {
+  deleteTarget = id;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() {
+  deleteTarget = null;
+  document.getElementById('confirmOverlay').classList.remove('open');
+}
+function confirmDelete() {
+  if (!deleteTarget) return;
+  const id = deleteTarget;
+  records = records.filter(r => r.id !== id);
+  saveCache();
+  closeConfirm();
+  refresh();
+  showToast('Entry deleted — syncing…', 'success');
+  deleteFromSheet(id);
+}
+
+// ── QUICK ADD EV ─────────────────────────────────────────────────────
+let quickEvTags = [];
+function openAddEv(id) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('addEv-id').value = id;
+  document.getElementById('addEv-name-preview').textContent = r.name;
+  document.getElementById('addEv-info-preview').textContent =
+    [r.date ? fmtDate(r.date) : '', r.vote, r.obl ? r.obl.replace('2026-2740300-','') : 'No OBL'].filter(Boolean).join(' · ');
+  quickEvTags = [];
+  renderQuickEvTags();
+  openModal('addEvModal');
+  setTimeout(() => document.getElementById('quickEv-input').focus(), 80);
+}
+function handleQuickEvKeydown(e) {
+  if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitQuickEvTag(); }
+  else if (e.key === 'Backspace' && e.target.value === '' && quickEvTags.length > 0) removeQuickEvTag(quickEvTags.length - 1);
+}
+function commitQuickEvTag() {
+  const input = document.getElementById('quickEv-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val && !quickEvTags.includes(val)) { quickEvTags.push(val); renderQuickEvTags(); }
+  input.value = '';
+}
+function removeQuickEvTag(index) { quickEvTags.splice(index, 1); renderQuickEvTags(); }
+function renderQuickEvTags() {
+  const wrap = document.getElementById('quickEv-wrap');
+  const input = document.getElementById('quickEv-input');
+  wrap.querySelectorAll('.vote-tag').forEach(t => t.remove());
+  quickEvTags.forEach((tag, i) => {
+    const el = document.createElement('span'); el.className = 'vote-tag';
+    el.innerHTML = `${tag} <span class="tag-remove" onclick="removeQuickEvTag(${i})" title="Remove">✕</span>`;
+    wrap.insertBefore(el, input);
+  });
+  input.placeholder = quickEvTags.length ? 'Add another…' : 'e.g. 2026-2740300-EV-00000093';
+}
+function saveQuickEv() {
+  commitQuickEvTag();
+  if (quickEvTags.length === 0) { showToast('Enter at least one EV No.', 'error'); return; }
+  const id  = document.getElementById('addEv-id').value;
+  const idx = records.findIndex(r => r.id === id);
+  if (idx === -1) return;
+  records[idx].ev = quickEvTags.join(', ');
+  records[idx].lastModified = new Date().toISOString();
+  saveCache();
+  closeModal('addEvModal');
+  refresh();
+  showToast('EV No saved — syncing…', 'success');
+  pushRecord(records[idx]);
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openAddModal() { showTab('add'); }
+
+// ── VOTE / EV TAG INPUTS ─────────────────────────────────────────────
+let addVoteTags = [];
+function handleVoteKeydown(e) {
+  if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitVoteTag(); }
+  else if (e.key === 'Backspace' && e.target.value === '' && addVoteTags.length > 0) removeVoteTag(addVoteTags.length - 1);
+}
+function commitVoteTag() {
+  const input = document.getElementById('add-vote-input'); if (!input) return;
+  const val = input.value.trim();
+  if (val && !addVoteTags.includes(val)) { addVoteTags.push(val); renderVoteTags(); }
+  input.value = '';
+}
+function removeVoteTag(i) { addVoteTags.splice(i, 1); renderVoteTags(); }
+function renderVoteTags() {
+  const wrap = document.getElementById('add-vote-wrap');
+  const input = document.getElementById('add-vote-input');
+  wrap.querySelectorAll('.vote-tag').forEach(t => t.remove());
+  addVoteTags.forEach((tag, i) => {
+    const el = document.createElement('span'); el.className = 'vote-tag';
+    el.innerHTML = `${tag} <span class="tag-remove" onclick="removeVoteTag(${i})">✕</span>`;
+    wrap.insertBefore(el, input);
+  });
+  input.placeholder = addVoteTags.length ? 'Add another…' : 'e.g. 274-1-2-0-1403';
+}
+function clearVoteTags() { addVoteTags = []; renderVoteTags(); const i = document.getElementById('add-vote-input'); if (i) i.value = ''; }
+
+let addEvTags = [];
+function handleEvKeydown(e) {
+  if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitEvTag(); }
+  else if (e.key === 'Backspace' && e.target.value === '' && addEvTags.length > 0) removeEvTag(addEvTags.length - 1);
+}
+function commitEvTag() {
+  const input = document.getElementById('add-ev-input'); if (!input) return;
+  const val = input.value.trim();
+  if (val && !addEvTags.includes(val)) { addEvTags.push(val); renderEvTags(); }
+  input.value = '';
+}
+function removeEvTag(i) { addEvTags.splice(i, 1); renderEvTags(); }
+function renderEvTags() {
+  const wrap = document.getElementById('add-ev-wrap');
+  const input = document.getElementById('add-ev-input');
+  wrap.querySelectorAll('.vote-tag').forEach(t => t.remove());
+  addEvTags.forEach((tag, i) => {
+    const el = document.createElement('span'); el.className = 'vote-tag';
+    el.innerHTML = `${tag} <span class="tag-remove" onclick="removeEvTag(${i})">✕</span>`;
+    wrap.insertBefore(el, input);
+  });
+  input.placeholder = addEvTags.length ? 'Add another…' : 'e.g. 2026-2740300-EV-00000093';
+}
+function clearEvTags() { addEvTags = []; renderEvTags(); const i = document.getElementById('add-ev-input'); if (i) i.value = ''; }
+
+// ── IMPREST PAID TOGGLE ───────────────────────────────────────────────
+function toggleImprestPaidAdd() {
+  const has = !!document.getElementById('add-imprest').value;
+  document.getElementById('add-imprestPaid-group').style.display = has ? '' : 'none';
+  if (!has) document.getElementById('add-imprestPaid').value = 'no';
+}
+function toggleImprestPaidEdit() {
+  const has = !!document.getElementById('edit-imprest').value;
+  document.getElementById('edit-imprestPaid-group').style.display = has ? '' : 'none';
+  if (!has) document.getElementById('edit-imprestPaid').value = 'no';
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────
+function renderStats() {
+  const total    = records.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const updated  = records.filter(r => r.gsheet).length;
+  const pending  = records.filter(r => !r.gsheet && !r.gsheetNA).length;
+  const gsheetNA = records.filter(r => r.gsheetNA).length;
+  const paid     = records.filter(r => r.paymentStatus === 'paid').length;
+  const payPend  = records.filter(r => r.paymentStatus === 'pending').length;
+  const partial  = records.filter(r => r.paymentStatus === 'partial').length;
+  const itmisYes = records.filter(r => r.itmisUpdated === 'yes').length;
+  const itmisNo  = records.filter(r => r.itmisUpdated !== 'yes').length;
+  const evPend   = records.filter(r => !r.ev).length;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total Entries</div>
+      <div class="stat-value">${records.length}</div>
+      <div class="stat-sub">Expenditure vouchers</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Total Amount</div>
+      <div class="stat-value" style="font-size:1.2rem">Rs. ${fmt(total)}</div>
+      <div class="stat-sub">All vouchers combined</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Payment: Paid</div>
+      <div class="stat-value">${paid}</div>
+      <div class="stat-sub">${payPend} pending · ${partial} partial</div>
+    </div>
+    <div class="stat-card ${evPend > 0 ? 'red' : 'green'}" style="cursor:${evPend > 0 ? 'pointer' : 'default'}" onclick="${evPend > 0 ? "document.getElementById('filterUpdated').value='ev_pending';renderTable();showTab('register')" : ''}">
+      <div class="stat-label">EV No Pending</div>
+      <div class="stat-value">${evPend}</div>
+      <div class="stat-sub">${evPend > 0 ? 'Click to view' : 'All have EV No'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Google Sheet Updated</div>
+      <div class="stat-value">${updated}</div>
+      <div class="stat-sub">${pending} pending · ${gsheetNA} N/A</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#6b21a8">
+      <div class="stat-label">ITMIS Updated</div>
+      <div class="stat-value" style="color:#6b21a8">${itmisYes}</div>
+      <div class="stat-sub">${itmisNo} not yet updated</div>
+    </div>
+  `;
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────
+function populateMonthFilter() {
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const keys = [...new Set(records.map(r => r.date ? r.date.slice(0,7) : '').filter(Boolean))].sort();
+  const sel = document.getElementById('filterMonth'); const cur = sel.value;
+  sel.innerHTML = '<option value="">All Months</option>';
+  keys.forEach(mk => {
+    const [y, m] = mk.split('-');
+    const opt = document.createElement('option'); opt.value = mk;
+    opt.textContent = `${MONTHS[parseInt(m,10)-1]} ${y}`; sel.appendChild(opt);
+  });
+  if (keys.includes(cur)) sel.value = cur;
+}
+function populateDateFilter() {
+  const dates = [...new Set(records.map(r => r.date).filter(Boolean))].sort();
+  const sel = document.getElementById('filterDate'); const cur = sel.value;
+  sel.innerHTML = '<option value="">All Dates</option>';
+  dates.forEach(d => {
+    const opt = document.createElement('option'); opt.value = d; opt.textContent = fmtDate(d); sel.appendChild(opt);
+  });
+  sel.value = cur;
+}
+
+// ── SORT ──────────────────────────────────────────────────────────────
+function sortBy(field) {
+  if (sortField === field) sortDir *= -1; else { sortField = field; sortDir = 1; }
+  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '↕');
+  const el = document.getElementById('sort-' + field); if (el) el.textContent = sortDir === 1 ? '↑' : '↓';
+  renderTable();
+}
+
+// ── RENDER TABLE ──────────────────────────────────────────────────────
+function renderTable() {
+  const search  = document.getElementById('searchInput').value.toLowerCase();
+  const fMonth  = document.getElementById('filterMonth').value;
+  const fDate   = document.getElementById('filterDate').value;
+  const fStatus = document.getElementById('filterUpdated').value;
+
+  let filtered = records.filter(r => {
+    const hay = [r.date, r.vote, r.obl, r.ev, r.name, r.notes, r.paymentStatus].join(' ').toLowerCase();
+    if (search  && !hay.includes(search)) return false;
+    if (fMonth  && (!r.date || r.date.slice(0,7) !== fMonth)) return false;
+    if (fDate   && r.date !== fDate) return false;
+    if (fStatus === 'ev_pending'        && r.ev)  return false;
+    if (fStatus === 'updated'           && !r.gsheet) return false;
+    if (fStatus === 'pending'           && (r.gsheet || r.gsheetNA)) return false;
+    if (fStatus === 'gsheet_na'         && !r.gsheetNA) return false;
+    if (fStatus === 'imprest'           && !r.imprest) return false;
+    if (fStatus === 'no_imprest'        && (r.imprest || r.imprestNA)) return false;
+    if (fStatus === 'imprest_na'        && !r.imprestNA) return false;
+    if (fStatus === 'imprest_paid'      && !(r.imprest && r.imprestPaid === 'yes')) return false;
+    if (fStatus === 'imprest_notpaid'   && !(r.imprest && r.imprestPaid !== 'yes')) return false;
+    if (fStatus === 'pay_paid'          && r.paymentStatus !== 'paid') return false;
+    if (fStatus === 'pay_pending'       && r.paymentStatus !== 'pending') return false;
+    if (fStatus === 'pay_partial'       && r.paymentStatus !== 'partial') return false;
+    if (fStatus === 'itmis_yes'         && r.itmisUpdated !== 'yes') return false;
+    if (fStatus === 'itmis_no'          && r.itmisUpdated === 'yes') return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    let av = a[sortField] || '', bv = b[sortField] || '';
+    if (sortField === 'amount') return sortDir * (Number(av) - Number(bv));
+    return sortDir * av.toString().localeCompare(bv.toString());
+  });
+
+  document.getElementById('recordCount').textContent = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+
+  if (filtered.length === 0) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const COLS = 13;
+  const monthTotals = {}, monthCounts = {};
+  filtered.forEach(r => {
+    const mk = r.date ? r.date.slice(0,7) : '';
+    monthTotals[mk] = (monthTotals[mk]||0) + Number(r.amount||0);
+    monthCounts[mk] = (monthCounts[mk]||0) + 1;
+  });
+  function getMonthLabel(key) {
+    if (!key) return 'No Date';
+    const [y, m] = key.split('-');
+    return `${MONTHS[parseInt(m,10)-1]} ${y}`;
+  }
+
+  let lastMonth = null, lastDate = '', rows = '';
+  filtered.forEach((r) => {
+    const mk = r.date ? r.date.slice(0,7) : '';
+    if (lastMonth !== null && mk !== lastMonth) {
+      rows += `<tr class="month-subtotal"><td colspan="${COLS}" style="text-align:right">
+        <span style="float:left;opacity:0.7">↑ ${getMonthLabel(lastMonth)} — ${monthCounts[lastMonth]} entr${monthCounts[lastMonth]===1?'y':'ies'}</span>
+        Subtotal: Rs. ${fmt(monthTotals[lastMonth])}</td></tr>`;
+    }
+    if (mk !== lastMonth) {
+      rows += `<tr class="month-header"><td colspan="${COLS}">📅 ${getMonthLabel(mk)}
+        <span class="month-meta">${monthCounts[mk]} entr${monthCounts[mk]===1?'y':'ies'} · Rs. ${fmt(monthTotals[mk])}</span></td></tr>`;
+      lastMonth = mk; lastDate = '';
+    }
+    const isNew = r.date !== lastDate;
+    if (r.date) lastDate = r.date;
+
+    rows += `<tr class="${isNew && r.date ? 'date-group-first' : ''}">
+      <td class="date-cell">${r.date ? fmtDate(r.date) : ''}</td>
+      <td class="vote-cell">${escHtml(r.vote||'—')}</td>
+      <td class="obl-cell">${r.obl ? escHtml(r.obl.replace('2026-2740300-','')) : '—'}</td>
+      <td class="ev-cell">${r.ev ? escHtml(r.ev.replace('2026-2740300-','')) : '<span class="badge badge-pending-pay" style="font-size:0.68rem">⏳ EV Pending</span>'}</td>
+      <td class="name-cell">${escHtml(r.name)}</td>
+      <td class="amount-cell">Rs. ${fmt(r.amount)}</td>
+      <td>${r.gsheet ? `<span class="badge badge-green">✓ ${fmtDate(r.gsheet)}</span>` : r.gsheetNA ? `<span class="badge badge-na">N/A</span>` : `<span class="badge badge-grey">Pending</span>`}</td>
+      <td>${r.imprest ? `<span class="badge badge-blue">✓ ${fmtDate(r.imprest)}</span>` : r.imprestNA ? `<span class="badge badge-na">N/A</span>` : '—'}</td>
+      <td class="actions-cell">${
+        r.imprestNA ? `<span class="badge badge-na" style="font-size:0.72rem">N/A</span>`
+        : r.imprest ? `<div class="pay-toggle">
+            <button onclick="setImprestPaid('${r.id}','yes')" class="${r.imprestPaid==='yes'?'active-paid':''}">✅ Paid</button>
+            <button onclick="setImprestPaid('${r.id}','no')"  class="${r.imprestPaid==='no'?'active-pending':''}">⏳ Not Paid</button>
+          </div>`
+        : `<span style="font-size:0.75rem;color:var(--text-muted)">— Not Received</span>`
+      }</td>
+      <td class="actions-cell">
+        <div class="pay-toggle">
+          <button onclick="setPayment('${r.id}','paid')"    class="${r.paymentStatus==='paid'?'active-paid':''}">✅ Paid</button>
+          <button onclick="setPayment('${r.id}','partial')" class="${r.paymentStatus==='partial'?'active-partial':''}">🔶 Partial</button>
+          <button onclick="setPayment('${r.id}','pending')" class="${r.paymentStatus==='pending'?'active-pending':''}">⏳ Pending</button>
+        </div>
+      </td>
+      <td class="actions-cell">
+        <div class="itmis-toggle">
+          <button onclick="setItmisUpdated('${r.id}','yes')" class="${r.itmisUpdated==='yes'?'active-yes':''}">✅ Updated</button>
+          <button onclick="setItmisUpdated('${r.id}','no')"  class="${r.itmisUpdated!=='yes'?'active-no':''}">⏳ Pending</button>
+        </div>
+      </td>
+      <td style="font-size:0.8rem;color:var(--text-muted);max-width:160px">${escHtml(r.notes||'')}</td>
+      <td class="actions-cell">
+        ${!r.ev ? `<button class="btn btn-sm" style="background:#f0a500;color:#fff;margin-right:4px" onclick="openAddEv('${r.id}')" title="Add EV No">＋ EV</button>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="openEdit('${r.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm"  onclick="askDelete('${r.id}')">🗑</button>
+      </td>
+    </tr>`;
+  });
+
+  if (lastMonth !== null) {
+    rows += `<tr class="month-subtotal"><td colspan="${COLS}" style="text-align:right">
+      <span style="float:left;opacity:0.7">↑ ${getMonthLabel(lastMonth)} — ${monthCounts[lastMonth]} entr${monthCounts[lastMonth]===1?'y':'ies'}</span>
+      Subtotal: Rs. ${fmt(monthTotals[lastMonth])}</td></tr>`;
+  }
+  tbody.innerHTML = rows;
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────────────
+function renderSummary() {
+  const total   = records.reduce((s,r) => s + Number(r.amount||0), 0);
+  const updated = records.filter(r => r.gsheet).length;
+  const gsPend  = records.filter(r => !r.gsheet && !r.gsheetNA).length;
+  const gsNA    = records.filter(r => r.gsheetNA).length;
+  const paid    = records.filter(r => r.paymentStatus === 'paid').length;
+  const payPend = records.filter(r => r.paymentStatus === 'pending').length;
+  const partial = records.filter(r => r.paymentStatus === 'partial').length;
+  const paidAmt = records.filter(r => r.paymentStatus==='paid').reduce((s,r)=>s+Number(r.amount||0),0);
+  const pendAmt = records.filter(r => r.paymentStatus!=='paid').reduce((s,r)=>s+Number(r.amount||0),0);
+
+  document.getElementById('summaryStatsGrid').innerHTML = `
+    <div class="stat-card gold"><div class="stat-label">Grand Total</div><div class="stat-value" style="font-size:1.1rem">Rs. ${fmt(total)}</div><div class="stat-sub">${records.length} entries</div></div>
+    <div class="stat-card green"><div class="stat-label">Paid Amount</div><div class="stat-value" style="font-size:1.1rem">Rs. ${fmt(paidAmt)}</div><div class="stat-sub">${paid} entries paid</div></div>
+    <div class="stat-card red"><div class="stat-label">Pending Amount</div><div class="stat-value" style="font-size:1.1rem">Rs. ${fmt(pendAmt)}</div><div class="stat-sub">${payPend} pending · ${partial} partial</div></div>
+  `;
+
+  // ITMIS
+  const itmisYes = records.filter(r => r.itmisUpdated === 'yes');
+  const itmisNo  = records.filter(r => r.itmisUpdated !== 'yes');
+  document.getElementById('summaryByItmis').innerHTML = [
+    { label:'✅ Updated in ITMIS', recs: itmisYes, cls:'badge-purple', type:'yes' },
+    { label:'⏳ Not Yet Updated',  recs: itmisNo,  cls:'badge-grey',   type:'no'  },
+  ].map(row => {
+    const amt = row.recs.reduce((s,r) => s+Number(r.amount||0), 0);
+    return `<tr class="summary-clickable" onclick="filterByItmis('${row.type}')">
+      <td><span class="badge ${row.cls}">${row.label}</span> <span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px">↗ view</span></td>
+      <td>${row.recs.length}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(amt)}</td></tr>`;
+  }).join('');
+
+  // Google Sheet
+  document.getElementById('summaryByGsheet').innerHTML = [
+    { label:'✅ Google Sheet Updated', recs: records.filter(r=>r.gsheet),              cls:'badge-green', type:'updated'   },
+    { label:'⏳ Pending Update',       recs: records.filter(r=>!r.gsheet&&!r.gsheetNA),cls:'badge-grey',  type:'pending'   },
+    { label:'⬜ Not Required (N/A)',   recs: records.filter(r=>r.gsheetNA),            cls:'badge-na',    type:'gsheet_na' },
+  ].map(row => {
+    const amt = row.recs.reduce((s,r) => s+Number(r.amount||0), 0);
+    return `<tr class="summary-clickable" onclick="filterByGsheet('${row.type}')">
+      <td><span class="badge ${row.cls}">${row.label}</span> <span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px">↗ view</span></td>
+      <td>${row.recs.length}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(amt)}</td></tr>`;
+  }).join('');
+
+  // Imprest
+  document.getElementById('summaryByImprest').innerHTML = [
+    { label:'📦 Imprest Received',    recs: records.filter(r=>r.imprest),                      cls:'badge-blue',  type:'received'    },
+    { label:'⏳ Not Yet Received',    recs: records.filter(r=>!r.imprest&&!r.imprestNA),        cls:'badge-grey',  type:'not_received' },
+    { label:'⬜ Not Required (N/A)', recs: records.filter(r=>r.imprestNA),                     cls:'badge-na',    type:'imprest_na'  },
+    { label:'✅ Imprest Paid',        recs: records.filter(r=>r.imprest&&r.imprestPaid==='yes'),cls:'badge-green', type:'paid'        },
+    { label:'⏳ Imprest Not Paid',    recs: records.filter(r=>r.imprest&&r.imprestPaid!=='yes'),cls:'badge-pending-pay', type:'notpaid' },
+  ].map(row => {
+    const amt = row.recs.reduce((s,r) => s+Number(r.amount||0), 0);
+    return `<tr class="summary-clickable" onclick="filterByImprest('${row.type}')">
+      <td><span class="badge ${row.cls}">${row.label}</span> <span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px">↗ view</span></td>
+      <td>${row.recs.length}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(amt)}</td></tr>`;
+  }).join('');
+
+  // Payment
+  document.getElementById('summaryByPayment').innerHTML = [
+    { label:'✅ Paid',    recs: records.filter(r=>r.paymentStatus==='paid'),    cls:'badge-paid' },
+    { label:'⏳ Pending', recs: records.filter(r=>r.paymentStatus==='pending'), cls:'badge-pending-pay' },
+    { label:'🔶 Partial', recs: records.filter(r=>r.paymentStatus==='partial'), cls:'badge-partial' },
+  ].map(row => {
+    const amt = row.recs.reduce((s,r) => s+Number(r.amount||0), 0);
+    return `<tr><td><span class="badge ${row.cls}">${row.label}</span></td><td>${row.recs.length}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(amt)}</td></tr>`;
+  }).join('');
+
+  // By Date
+  const byDate = {};
+  records.forEach(r => {
+    const k = r.date||'No Date';
+    if (!byDate[k]) byDate[k] = { count:0, total:0, updated:0 };
+    byDate[k].count++; byDate[k].total += Number(r.amount||0);
+    if (r.gsheet) byDate[k].updated++;
+  });
+  let dTotal = 0;
+  document.getElementById('summaryByDate').innerHTML = Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v]) => {
+    dTotal += v.total;
+    const allUp = v.updated === v.count;
+    return `<tr class="summary-clickable" onclick="filterByDate('${d}')">
+      <td><strong>${fmtDate(d)}</strong> <span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px">↗</span></td>
+      <td>${v.count}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(v.total)}</td>
+      <td><span class="badge ${allUp?'badge-green':'badge-grey'}">${v.updated}/${v.count} updated</span></td></tr>`;
+  }).join('') + `<tr class="total-row"><td>TOTAL</td><td>${records.length}</td><td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(dTotal)}</td><td></td></tr>`;
+
+  // By Vote
+  const byVote = {};
+  records.forEach(r => {
+    (r.vote||'No Vote').split(',').map(v=>v.trim()).filter(Boolean).forEach(v => {
+      if (!byVote[v]) byVote[v] = { count:0, total:0 };
+      byVote[v].count++; byVote[v].total += Number(r.amount||0);
+    });
+  });
+  let vTotal = 0;
+  document.getElementById('summaryByVote').innerHTML = Object.entries(byVote).sort((a,b)=>b[1].total-a[1].total).map(([v,d]) => {
+    vTotal += d.total;
+    return `<tr class="summary-clickable" onclick="filterByVote('${v}')">
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${v} <span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px">↗</span></td>
+      <td>${d.count}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(d.total)}</td></tr>`;
+  }).join('') + `<tr class="total-row"><td>TOTAL</td><td>${records.length}</td><td style="text-align:right;font-family:'DM Mono',monospace">Rs. ${fmt(vTotal)}</td></tr>`;
+}
+
+// ── SUMMARY FILTER HELPERS ────────────────────────────────────────────
+function filterByDate(d)   { document.getElementById('filterDate').value=''; document.getElementById('filterDate').value=d; document.getElementById('filterUpdated').value=''; document.getElementById('searchInput').value=''; showTab('register'); renderTable(); }
+function filterByVote(v)   { document.getElementById('searchInput').value=v; document.getElementById('filterUpdated').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
+function filterByGsheet(s) { document.getElementById('filterUpdated').value=s==='updated'?'updated':s==='pending'?'pending':'gsheet_na'; document.getElementById('searchInput').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
+function filterByImprest(t){ const m={received:'imprest',not_received:'no_imprest',imprest_na:'imprest_na',paid:'imprest_paid',notpaid:'imprest_notpaid'}; document.getElementById('filterUpdated').value=m[t]||''; document.getElementById('searchInput').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
+function filterByItmis(t)  { document.getElementById('filterUpdated').value='itmis_'+t; document.getElementById('searchInput').value=''; document.getElementById('filterDate').value=''; showTab('register'); renderTable(); }
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────
+function exportCSV() {
+  const headers = ['Date','Vote','OBL No','EV No','Name','Amount (Rs.)','GSheet Update Date','GSheet N/A','Imprest Receive Date','Imprest N/A','Imprest Paid','Payment Status','ITMIS Updated','Notes'];
+  const rows = records.map(r => [
+    r.date, r.vote, r.obl, r.ev, `"${(r.name||'').replace(/"/g,'""')}"`,
+    r.amount, r.gsheet, r.gsheetNA?'Yes':'No', r.imprest, r.imprestNA?'Yes':'No',
+    r.imprest?(r.imprestPaid==='yes'?'Yes':'No'):'',
+    r.paymentStatus||'pending', r.itmisUpdated==='yes'?'Yes':'No',
+    `"${(r.notes||'').replace(/"/g,'""')}"`
+  ].join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href = url; a.download = `ITMIS_Register_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  showToast('CSV exported!', 'success');
+}
+
+function printRegister() { window.print(); }
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span> ${msg}`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── REFRESH ───────────────────────────────────────────────────────────
+function refresh() {
+  renderStats();
+  populateMonthFilter();
+  populateDateFilter();
+  renderTable();
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(e => console.warn('SW failed:', e));
+  });
+}
+
+// ── MODAL CLOSE ON OVERLAY CLICK ─────────────────────────────────────
+['addEvModal','editModal','conflictModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) closeModal(id);
+  });
+});
+document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirm();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-GB', {
+  weekday:'short', day:'2-digit', month:'short', year:'numeric'
+});
+
+loadConfig();
+loadCache();
+refresh();
+setSyncStatus('', 'Ready');
+
+// Initial sync
+if (SCRIPT_URL) {
+  syncNow(true);
+  startAutoSync();
+} else {
+  setSyncStatus('error', 'Not configured — see Settings');
+}
+</script>
+</body>
+</html>
