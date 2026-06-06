@@ -938,12 +938,10 @@ function setSyncLastTime(iso) {
 async function apiCall(body) {
   if (!SCRIPT_URL) throw new Error('No Script URL configured');
   body.token = SECRET_TOKEN;
-  const res = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },  // text/plain avoids CORS preflight
-    body: JSON.stringify(body),
-    redirect: 'follow',
-  });
+  // Use GET with URL-encoded payload — avoids the CORS redirect issue
+  // that Apps Script causes with POST requests.
+  const url = SCRIPT_URL + '?payload=' + encodeURIComponent(JSON.stringify(body));
+  const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || 'API error');
