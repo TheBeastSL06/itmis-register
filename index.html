@@ -991,6 +991,7 @@ async function syncNow(silent = false) {
     records.forEach(r => { if (r.id) localMap[r.id] = r; });
 
     const merged = data.records.map(sheetRec => {
+      normalizeRecord(sheetRec);
       const local = localMap[sheetRec.id];
       if (local && local.lastModified && sheetRec.lastModified &&
           local.lastModified > sheetRec.lastModified) {
@@ -1221,6 +1222,14 @@ function escHtml(s) {
 }
 function genId() { return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
 
+// Normalize boolean-like fields that Google Sheets may return as strings
+function normalizeRecord(r) {
+  const toBool = v => v === true || v === 'true' || v === 'TRUE' || v === '1';
+  r.gsheetNA   = toBool(r.gsheetNA);
+  r.imprestNA  = toBool(r.imprestNA);
+  return r;
+}
+
 // ── TABS ─────────────────────────────────────────────────────────────
 function showTab(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -1385,6 +1394,30 @@ function setGsheet(id, val) {
   const msg = val === 'yes' ? 'Google Sheet marked Updated ✅'
             : val === 'na'  ? 'Google Sheet marked N/A ⬜'
             :                 'Google Sheet marked Not Updated ✖';
+  showToast(msg, 'success');
+  pushRecord(r);
+}
+function setImprest(id, val) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  if (val === 'na') {
+    r.imprest   = '';
+    r.imprestNA = true;
+    r.imprestPaid = '';
+  } else if (val === 'clear') {
+    r.imprest   = '';
+    r.imprestNA = false;
+    r.imprestPaid = '';
+  } else {
+    // val is today's date string
+    r.imprest   = val;
+    r.imprestNA = false;
+  }
+  r.lastModified = new Date().toISOString();
+  saveCache(); renderTable(); renderStats();
+  const msg = val === 'na'    ? 'Imprest marked N/A ⬜'
+            : val === 'clear' ? 'Imprest marked Not Received ✖'
+            :                   'Imprest marked Received ✅';
   showToast(msg, 'success');
   pushRecord(r);
 }
@@ -1719,7 +1752,28 @@ function renderTable() {
                <button onclick="setGsheet('${r.id}','na')">⬜ N/A</button>
              </div>`
       }</td>
-      <td>${r.imprest ? `<span class="badge badge-blue">✓ ${fmtDate(r.imprest)}</span>` : r.imprestNA ? `<span class="badge badge-na">N/A</span>` : '—'}</td>
+      <td class="actions-cell">${
+        r.imprestNA
+          ? `<div class="itmis-toggle">
+               <button onclick="setImprest('${r.id}',new Date().toISOString().slice(0,10))">✅ Yes</button>
+               <button onclick="setImprest('${r.id}','clear')">✖ No</button>
+               <button onclick="setImprest('${r.id}','na')" class="active-yes" style="background:#6b7280">⬜ N/A</button>
+             </div>`
+          : r.imprest
+          ? `<div style="display:flex;flex-direction:column;gap:3px">
+               <div class="itmis-toggle">
+                 <button onclick="setImprest('${r.id}',new Date().toISOString().slice(0,10))" class="active-yes">✅ Yes</button>
+                 <button onclick="setImprest('${r.id}','clear')">✖ No</button>
+                 <button onclick="setImprest('${r.id}','na')">⬜ N/A</button>
+               </div>
+               <span style="font-size:0.68rem;color:var(--text-muted);font-family:'DM Mono',monospace">${fmtDate(r.imprest)}</span>
+             </div>`
+          : `<div class="itmis-toggle">
+               <button onclick="setImprest('${r.id}',new Date().toISOString().slice(0,10))">✅ Yes</button>
+               <button onclick="setImprest('${r.id}','clear')" class="active-no">✖ No</button>
+               <button onclick="setImprest('${r.id}','na')">⬜ N/A</button>
+             </div>`
+      }</td>
       <td class="actions-cell">${
         r.imprestNA ? `<span class="badge badge-na" style="font-size:0.72rem">N/A</span>`
         : r.imprest ? `<div class="pay-toggle">
