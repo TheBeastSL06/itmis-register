@@ -1359,11 +1359,14 @@ function setPayment(id, status) {
 function setGsheet(id, val) {
   const r = records.find(x => x.id === id);
   if (!r) return;
-  r.gsheet = val === 'yes' ? new Date().toISOString() : '';
-  if (val === 'yes') r.gsheetNA = false;
+  r.gsheet   = val === 'yes' ? new Date().toISOString() : '';
+  r.gsheetNA = val === 'na';
   r.lastModified = new Date().toISOString();
   saveCache(); renderTable(); renderStats();
-  showToast(val === 'yes' ? 'Google Sheet marked Updated ✅' : 'Google Sheet marked Not Updated', 'success');
+  const msg = val === 'yes' ? 'Google Sheet marked Updated ✅'
+            : val === 'na'  ? 'Google Sheet marked N/A ⬜'
+            :                 'Google Sheet marked Not Updated ✖';
+  showToast(msg, 'success');
   pushRecord(r);
 }
 function setItmisUpdated(id, val) {
@@ -1674,18 +1677,25 @@ function renderTable() {
       <td class="name-cell">${escHtml(r.name)}</td>
       <td class="amount-cell">Rs. ${fmt(r.amount)}</td>
       <td class="actions-cell">${
-        r.gsheetNA ? `<span class="badge badge-na" style="font-size:0.72rem">N/A</span>`
-        : r.gsheet
+        r.gsheetNA
+          ? `<div class="itmis-toggle">
+               <button onclick="setGsheet('${r.id}','yes')">✅ Yes</button>
+               <button onclick="setGsheet('${r.id}','no')">✖ No</button>
+               <button onclick="setGsheet('${r.id}','na')" class="active-yes" style="background:#6b7280">⬜ N/A</button>
+             </div>`
+          : r.gsheet
           ? `<div style="display:flex;flex-direction:column;gap:3px">
                <div class="itmis-toggle">
                  <button onclick="setGsheet('${r.id}','yes')" class="active-yes">✅ Yes</button>
                  <button onclick="setGsheet('${r.id}','no')">✖ No</button>
+                 <button onclick="setGsheet('${r.id}','na')">⬜ N/A</button>
                </div>
                <span style="font-size:0.68rem;color:var(--text-muted);font-family:'DM Mono',monospace">${fmtDateTime(r.gsheet)}</span>
              </div>`
           : `<div class="itmis-toggle">
                <button onclick="setGsheet('${r.id}','yes')">✅ Yes</button>
                <button onclick="setGsheet('${r.id}','no')" class="active-no">✖ No</button>
+               <button onclick="setGsheet('${r.id}','na')">⬜ N/A</button>
              </div>`
       }</td>
       <td>${r.imprest ? `<span class="badge badge-blue">✓ ${fmtDate(r.imprest)}</span>` : r.imprestNA ? `<span class="badge badge-na">N/A</span>` : '—'}</td>
