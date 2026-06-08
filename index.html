@@ -1025,6 +1025,13 @@ async function syncNow(silent = false) {
 
 async function pushRecord(record) {
   if (!SCRIPT_URL) { saveCache(); return; }
+  if (isSyncing) {
+    // Another sync/push is in flight — retry once it finishes
+    setTimeout(() => pushRecord(record), 1500);
+    return;
+  }
+  isSyncing = true;
+  document.getElementById('syncBtn').disabled = true;
   setSyncStatus('syncing', 'Saving…');
   try {
     // Conflict check: if sheet was modified since we last pulled
@@ -1051,9 +1058,16 @@ async function pushRecord(record) {
       }
     }
 
-    await apiCall({ action: 'save', record });
-    sheetLastModified = new Date().toISOString();
-    localLastModified = sheetLastModified;
+    const result = await apiCall({ action: 'save', record });
+    // Use the server's lastModified so our local timestamp matches the sheet exactly,
+    // preventing a false "sheet is newer" on the next auto-sync pull.
+    const serverTs = result.lastModified || new Date().toISOString();
+    record.lastModified  = serverTs;
+    sheetLastModified    = serverTs;
+    localLastModified    = serverTs;
+    // Update the in-memory record with the server timestamp too
+    const idx = records.findIndex(r => r.id === record.id);
+    if (idx !== -1) records[idx].lastModified = serverTs;
     saveCache();
     setSyncStatus('synced', 'Saved to Google Sheets');
     setSyncLastTime(localLastModified);
@@ -1225,8 +1239,8 @@ function genId() { return 'e_' + Date.now() + '_' + Math.random().toString(36).s
 // Normalize boolean-like fields that Google Sheets may return as strings
 function normalizeRecord(r) {
   const toBool = v => v === true || v === 'true' || v === 'TRUE' || v === '1';
-  r.gsheetNA   = toBool(r.gsheetNA);
-  r.imprestNA  = toBool(r.imprestNA);
+  r.gsheetNA  = toBool(r.gsheetNA);
+  r.imprestNA = toBool(r.imprestNA);
   return r;
 }
 
@@ -1401,23 +1415,15 @@ function setImprest(id, val) {
   const r = records.find(x => x.id === id);
   if (!r) return;
   if (val === 'na') {
-    r.imprest   = '';
-    r.imprestNA = true;
-    r.imprestPaid = '';
+    r.imprest = ''; r.imprestNA = true; r.imprestPaid = '';
   } else if (val === 'clear') {
-    r.imprest   = '';
-    r.imprestNA = false;
-    r.imprestPaid = '';
+    r.imprest = ''; r.imprestNA = false; r.imprestPaid = '';
   } else {
-    // val is today's date string
-    r.imprest   = val;
-    r.imprestNA = false;
+    r.imprest = val; r.imprestNA = false;
   }
   r.lastModified = new Date().toISOString();
   saveCache(); renderTable(); renderStats();
-  const msg = val === 'na'    ? 'Imprest marked N/A ⬜'
-            : val === 'clear' ? 'Imprest marked Not Received ✖'
-            :                   'Imprest marked Received ✅';
+  const msg = val === 'na' ? 'Imprest marked N/A ⬜' : val === 'clear' ? 'Imprest marked Not Received ✖' : 'Imprest marked Received ✅';
   showToast(msg, 'success');
   pushRecord(r);
 }
