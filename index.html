@@ -559,7 +559,7 @@
             <th onclick="sortBy('ev')"   style="width:90px">EV No <span class="sort-icon" id="sort-ev">↕</span></th>
             <th onclick="sortBy('name')">Name / Description <span class="sort-icon" id="sort-name">↕</span></th>
             <th onclick="sortBy('amount')" style="text-align:right">Amount (Rs.) <span class="sort-icon" id="sort-amount">↕</span></th>
-            <th onclick="sortBy('gsheet')">Google Sheet Updated <span class="sort-icon" id="sort-gsheet">↕</span></th>
+            <th onclick="sortBy('gsheet')">GSheet Updated <span class="sort-icon" id="sort-gsheet">↕</span></th>
             <th onclick="sortBy('imprest')">Imprest Received <span class="sort-icon" id="sort-imprest">↕</span></th>
             <th onclick="sortBy('imprestPaid')">Imprest Paid <span class="sort-icon" id="sort-imprestPaid">↕</span></th>
             <th onclick="sortBy('paymentStatus')">Payment Status <span class="sort-icon" id="sort-paymentStatus">↕</span></th>
@@ -634,12 +634,12 @@
           <input type="number" id="add-amount" placeholder="0.00" step="0.01">
         </div>
         <div class="form-group">
-          <label>Google Sheet Update Date</label>
-          <input type="date" id="add-gsheet" onchange="if(this.value) document.getElementById('add-gsheetNA').checked=false;">
-          <label style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-muted);cursor:pointer">
-            <input type="checkbox" id="add-gsheetNA" onchange="if(this.checked) document.getElementById('add-gsheet').value='';">
-            Not required for this entry
-          </label>
+          <label>Google Sheet Updated?</label>
+          <select id="add-gsheet">
+            <option value="no">✖ Not Yet Updated</option>
+            <option value="yes">✅ Updated (stamps current date &amp; time)</option>
+            <option value="na">⬜ Not Required (N/A)</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Imprest Receive Date</label>
@@ -755,12 +755,13 @@
         <div class="form-group full-width"><label>Name / Description *</label><textarea id="edit-name"></textarea></div>
         <div class="form-group"><label>Amount (Rs.) *</label><input type="number" id="edit-amount" step="0.01"></div>
         <div class="form-group">
-          <label>Google Sheet Update Date</label>
-          <input type="date" id="edit-gsheet" onchange="if(this.value) document.getElementById('edit-gsheetNA').checked=false;">
-          <label style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:0.8rem;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-muted);cursor:pointer">
-            <input type="checkbox" id="edit-gsheetNA" onchange="if(this.checked) document.getElementById('edit-gsheet').value='';">
-            Not required for this entry
-          </label>
+          <label>Google Sheet Updated?</label>
+          <select id="edit-gsheet">
+            <option value="no">✖ Not Yet Updated</option>
+            <option value="yes">✅ Updated</option>
+            <option value="na">⬜ Not Required (N/A)</option>
+          </select>
+          <div id="edit-gsheet-ts" style="font-size:0.75rem;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:5px"></div>
         </div>
         <div class="form-group">
           <label>Imprest Receive Date</label>
@@ -1178,6 +1179,15 @@ function clearLocalCache() {
 }
 
 // ── HELPERS ─────────────────────────────────────────────────────────
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    return date + ' ' + time;
+  } catch { return iso; }
+}
 function fmt(n) {
   return Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -1218,8 +1228,9 @@ function addEntry() {
     return;
   }
 
-  const gsheet     = document.getElementById('add-gsheet').value;
-  const gsheetNA   = document.getElementById('add-gsheetNA').checked;
+  const gsheetSel  = document.getElementById('add-gsheet').value;
+  const gsheet     = gsheetSel === 'yes' ? new Date().toISOString() : '';
+  const gsheetNA   = gsheetSel === 'na';
   const imprest    = document.getElementById('add-imprest').value;
   const imprestNA  = document.getElementById('add-imprestNA').checked;
   const imprestPaid= imprest ? document.getElementById('add-imprestPaid').value : '';
@@ -1251,11 +1262,11 @@ function clearAddForm() {
   ['add-date','add-obl','add-name','add-amount','add-gsheet','add-imprest','add-notes']
     .forEach(id => { document.getElementById(id).value = ''; });
   clearVoteTags(); clearEvTags();
+  document.getElementById('add-gsheet').value = 'no';
   document.getElementById('add-paymentStatus').value = 'pending';
   document.getElementById('add-itmisUpdated').value  = 'no';
   document.getElementById('add-imprestPaid').value   = 'no';
   document.getElementById('add-imprestPaid-group').style.display = 'none';
-  document.getElementById('add-gsheetNA').checked  = false;
   document.getElementById('add-imprestNA').checked = false;
 }
 
@@ -1270,8 +1281,10 @@ function openEdit(id) {
   document.getElementById('edit-ev').value       = r.ev     || '';
   document.getElementById('edit-name').value     = r.name   || '';
   document.getElementById('edit-amount').value   = r.amount || '';
-  document.getElementById('edit-gsheet').value   = r.gsheet || '';
-  document.getElementById('edit-gsheetNA').checked = !!r.gsheetNA;
+  const gsheetVal = r.gsheetNA ? 'na' : r.gsheet ? 'yes' : 'no';
+  document.getElementById('edit-gsheet').value = gsheetVal;
+  document.getElementById('edit-gsheet-ts').textContent =
+    r.gsheet ? 'Stamped: ' + fmtDateTime(r.gsheet) : '';
   document.getElementById('edit-imprest').value  = r.imprest|| '';
   document.getElementById('edit-imprestNA').checked = !!r.imprestNA;
   document.getElementById('edit-imprestPaid').value = r.imprestPaid || 'no';
@@ -1303,8 +1316,10 @@ function saveEdit() {
     obl:    document.getElementById('edit-obl').value.trim(),
     ev, name,
     amount: parseFloat(amount),
-    gsheet: document.getElementById('edit-gsheet').value,
-    gsheetNA: document.getElementById('edit-gsheetNA').checked,
+    gsheet: (document.getElementById('edit-gsheet').value === 'yes')
+             ? (records[idx].gsheet || new Date().toISOString())
+             : '',
+    gsheetNA: document.getElementById('edit-gsheet').value === 'na',
     imprest:document.getElementById('edit-imprest').value,
     imprestNA: document.getElementById('edit-imprestNA').checked,
     imprestPaid: document.getElementById('edit-imprest').value ? document.getElementById('edit-imprestPaid').value : '',
@@ -1339,6 +1354,16 @@ function setPayment(id, status) {
   saveCache(); renderTable(); renderStats();
   const labels = { paid:'Marked Paid ✅', pending:'Marked Pending ⏳', partial:'Marked Partial 🔶' };
   showToast(labels[status], 'success');
+  pushRecord(r);
+}
+function setGsheet(id, val) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  r.gsheet = val === 'yes' ? new Date().toISOString() : '';
+  if (val === 'yes') r.gsheetNA = false;
+  r.lastModified = new Date().toISOString();
+  saveCache(); renderTable(); renderStats();
+  showToast(val === 'yes' ? 'Google Sheet marked Updated ✅' : 'Google Sheet marked Not Updated', 'success');
   pushRecord(r);
 }
 function setItmisUpdated(id, val) {
@@ -1648,7 +1673,21 @@ function renderTable() {
       <td class="ev-cell">${r.ev ? escHtml(r.ev.replace('2026-2740300-','')) : '<span class="badge badge-pending-pay" style="font-size:0.68rem">⏳ EV Pending</span>'}</td>
       <td class="name-cell">${escHtml(r.name)}</td>
       <td class="amount-cell">Rs. ${fmt(r.amount)}</td>
-      <td>${r.gsheet ? `<span class="badge badge-green">✓ ${fmtDate(r.gsheet)}</span>` : r.gsheetNA ? `<span class="badge badge-na">N/A</span>` : `<span class="badge badge-grey">Pending</span>`}</td>
+      <td class="actions-cell">${
+        r.gsheetNA ? `<span class="badge badge-na" style="font-size:0.72rem">N/A</span>`
+        : r.gsheet
+          ? `<div style="display:flex;flex-direction:column;gap:3px">
+               <div class="itmis-toggle">
+                 <button onclick="setGsheet('${r.id}','yes')" class="active-yes">✅ Yes</button>
+                 <button onclick="setGsheet('${r.id}','no')">✖ No</button>
+               </div>
+               <span style="font-size:0.68rem;color:var(--text-muted);font-family:'DM Mono',monospace">${fmtDateTime(r.gsheet)}</span>
+             </div>`
+          : `<div class="itmis-toggle">
+               <button onclick="setGsheet('${r.id}','yes')">✅ Yes</button>
+               <button onclick="setGsheet('${r.id}','no')" class="active-no">✖ No</button>
+             </div>`
+      }</td>
       <td>${r.imprest ? `<span class="badge badge-blue">✓ ${fmtDate(r.imprest)}</span>` : r.imprestNA ? `<span class="badge badge-na">N/A</span>` : '—'}</td>
       <td class="actions-cell">${
         r.imprestNA ? `<span class="badge badge-na" style="font-size:0.72rem">N/A</span>`
