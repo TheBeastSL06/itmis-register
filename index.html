@@ -863,14 +863,17 @@
 // ════════════════════════════════════════════════════════════════════
 
 // ── CONFIG (loaded from localStorage) ──────────────────────────────
-let SCRIPT_URL = '';
-let SECRET_TOKEN = '';
+const DEFAULT_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbyq-xERMo5s_9d9TdcM1GMVIrL-Du_yLwvUyN2pPuYTflT6x5dxKmRpzqLSG99PFr5f/exec';
+const DEFAULT_TOKEN       = 'DsHrpAcc@2026';
+
+let SCRIPT_URL = DEFAULT_SCRIPT_URL;
+let SECRET_TOKEN = DEFAULT_TOKEN;
 let SYNC_INTERVAL = 60000;
 let syncTimer = null;
 
 function loadConfig() {
-  SCRIPT_URL   = localStorage.getItem('itmis_script_url') || '';
-  SECRET_TOKEN = localStorage.getItem('itmis_token')      || '';
+  SCRIPT_URL   = localStorage.getItem('itmis_script_url') || DEFAULT_SCRIPT_URL;
+  SECRET_TOKEN = localStorage.getItem('itmis_token')      || DEFAULT_TOKEN;
   SYNC_INTERVAL= parseInt(localStorage.getItem('itmis_interval') || '60000', 10);
   document.getElementById('cfg-url').value      = SCRIPT_URL;
   document.getElementById('cfg-token').value    = SECRET_TOKEN;
