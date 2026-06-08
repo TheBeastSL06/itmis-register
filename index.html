@@ -984,7 +984,26 @@ async function syncNow(silent = false) {
 
   try {
     const data = await apiCall({ action: 'getAll' });
-    records = data.records;
+
+    // Merge: if a local record is newer than the sheet version (e.g. a push
+    // is still in-flight), keep the local version to avoid overwriting it.
+    const localMap = {};
+    records.forEach(r => { if (r.id) localMap[r.id] = r; });
+
+    const merged = data.records.map(sheetRec => {
+      const local = localMap[sheetRec.id];
+      if (local && local.lastModified && sheetRec.lastModified &&
+          local.lastModified > sheetRec.lastModified) {
+        return local;  // local is newer — keep it
+      }
+      return sheetRec;
+    });
+
+    // Keep any local-only records whose push is still pending
+    const sheetIds = new Set(data.records.map(r => r.id));
+    records.forEach(r => { if (r.id && !sheetIds.has(r.id)) merged.push(r); });
+
+    records = merged;
     sheetLastModified = data.sheetLastModified;
     localLastModified = new Date().toISOString();
     saveCache();
@@ -1611,11 +1630,13 @@ function renderTable() {
     if (fDate   && r.date !== fDate) return false;
     if (fStatus === 'ev_pending'        && r.ev)  return false;
     if (fStatus === 'updated'           && !r.gsheet) return false;
-    if (fStatus === 'pending'           && (r.gsheet || r.gsheetNA)) return false;
-    if (fStatus === 'gsheet_na'         && !r.gsheetNA) return false;
+    const gsNA  = r.gsheetNA  === true || r.gsheetNA  === 'true'  || r.gsheetNA  === 'TRUE';
+    const impNA = r.imprestNA === true || r.imprestNA === 'true'  || r.imprestNA === 'TRUE';
+    if (fStatus === 'pending'           && (r.gsheet || gsNA)) return false;
+    if (fStatus === 'gsheet_na'         && !gsNA) return false;
     if (fStatus === 'imprest'           && !r.imprest) return false;
-    if (fStatus === 'no_imprest'        && (r.imprest || r.imprestNA)) return false;
-    if (fStatus === 'imprest_na'        && !r.imprestNA) return false;
+    if (fStatus === 'no_imprest'        && (r.imprest || impNA)) return false;
+    if (fStatus === 'imprest_na'        && !impNA) return false;
     if (fStatus === 'imprest_paid'      && !(r.imprest && r.imprestPaid === 'yes')) return false;
     if (fStatus === 'imprest_notpaid'   && !(r.imprest && r.imprestPaid !== 'yes')) return false;
     if (fStatus === 'pay_paid'          && r.paymentStatus !== 'paid') return false;
